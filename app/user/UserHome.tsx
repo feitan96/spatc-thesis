@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Button } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import { ref, onValue } from "firebase/database";
 import { database } from "../../firebaseConfig";
 import { signOut } from "firebase/auth";
@@ -140,6 +141,28 @@ const UserHomeScreen = () => {
         <Text style={styles.validationText}>Validating trash level...</Text>
       )}
 
+       {/* Map View */}
+       {binData.gps.latitude && binData.gps.longitude && (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: binData.gps.latitude,
+            longitude: binData.gps.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+        >
+          <Marker
+            coordinate={{
+              latitude: binData.gps.latitude,
+              longitude: binData.gps.longitude,
+            }}
+            title="Bin Location"
+            description="Real-time location of the bin"
+          />
+        </MapView>
+      )}
+
       <Button title="Logout" onPress={handleLogout} />
     </View>
   );
@@ -169,6 +192,11 @@ const styles = StyleSheet.create({
   weatherText: {
     fontSize: 18,
     marginTop: 10,
+  },
+  map: {
+    width: "100%",
+    height: 300,
+    marginTop: 20,
   },
 });
 

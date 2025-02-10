@@ -3,7 +3,7 @@ import { View, TextInput, Button, Alert, StyleSheet, Text } from "react-native";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { router } from "expo-router";
-import { v4 as uuidv4 } from 'uuid';
+import uuid from 'react-native-uuid';
 import Toast from "react-native-toast-message";
 
 const CredentialsScreen = () => {
@@ -27,7 +27,7 @@ const CredentialsScreen = () => {
     }
 
     try {
-      const userId = uuidv4();
+      const userId = uuid.v4();
       const docRef = await addDoc(collection(db, "users"), {
         userId,
         email,
