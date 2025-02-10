@@ -5,6 +5,7 @@ import { database } from "../../firebaseConfig";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
 import { router } from "expo-router";
+import axios from "axios";
 
 const UserHomeScreen = () => {
   const [binData, setBinData] = useState({
@@ -19,6 +20,15 @@ const UserHomeScreen = () => {
   const [trashLevel, setTrashLevel] = useState(0); // Trash level percentage
   const [validatedTrashLevel, setValidatedTrashLevel] = useState(0); // Validated trash level percentage
   const [isValidating, setIsValidating] = useState(false); // Validation state
+
+  const API_KEY = "d1b379e89fe87076140d9462009828b2";
+  interface WeatherData {
+    weather: { description: string }[];
+    main: { temp: number; humidity: number };
+    wind: { speed: number };
+  }
+
+  const [weather, setWeather] = useState<WeatherData | null>(null); // Weather data
 
   useEffect(() => {
     const binRef = ref(database, "bin");
@@ -81,6 +91,23 @@ const UserHomeScreen = () => {
     }
   }, [isValidating, binData.distance, trashLevel]);
 
+  useEffect(() => {
+    const fetchWeather = async () => {
+      if (binData.gps.latitude && binData.gps.longitude) {
+        try {
+          const response = await axios.get(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&appid=${API_KEY}&units=metric`
+          );
+          setWeather(response.data);
+        } catch (error) {
+          console.error("Error fetching weather data: ", error);
+        }
+      }
+    };
+
+    fetchWeather();
+  }, [binData.gps.latitude, binData.gps.longitude]);
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -99,6 +126,15 @@ const UserHomeScreen = () => {
       <Text style={styles.dataText}>Altitude: {binData.gps.altitude}</Text>
       <Text style={styles.dataText}>Latitude: {binData.gps.latitude}</Text>
       <Text style={styles.dataText}>Longitude: {binData.gps.longitude}</Text>
+
+      {weather && (
+        <View>
+          <Text style={styles.weatherText}>Weather: {weather.weather[0].description}</Text>
+          <Text style={styles.weatherText}>Temperature: {weather.main.temp}°C</Text>
+          <Text style={styles.dataText}>Humidity: {weather.main.humidity}%</Text>
+          <Text style={styles.dataText}>Wind Speed: {weather.wind.speed} m/s</Text>
+        </View>
+      )}
 
       {isValidating && (
         <Text style={styles.validationText}>Validating trash level...</Text>
@@ -128,6 +164,10 @@ const styles = StyleSheet.create({
   validationText: {
     fontSize: 16,
     color: "orange",
+    marginTop: 10,
+  },
+  weatherText: {
+    fontSize: 18,
     marginTop: 10,
   },
 });
