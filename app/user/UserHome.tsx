@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Button } from "react-native";
+import NotificationModal from "../modals/NotificationModal";
+import { FontAwesome } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, Button } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { ref, onValue } from "firebase/database";
-import { database } from "../../firebaseConfig";
+import { database, db } from "../../firebaseConfig";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
 import { router } from "expo-router";
 import axios from "axios";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 
 const UserHomeScreen = () => {
   const [binData, setBinData] = useState({
@@ -21,9 +24,17 @@ const UserHomeScreen = () => {
   const [trashLevel, setTrashLevel] = useState(0);
   const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
-
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  
   const API_KEY = "d1b379e89fe87076140d9462009828b2";
   const WORLD_TIDES_API_KEY = "2f783ec9-ed24-4340-b503-7208bcd9b282";
+
+  interface Notification {
+    trashLevel: number;
+    datetime: string;
+  }
 
   interface WeatherData {
     weather: { description: string }[];
@@ -37,8 +48,8 @@ const UserHomeScreen = () => {
     nextLowTide: string;
   }
 
-  const [weather, setWeather] = useState<WeatherData | null>(null); // Weather data
-  const [tideData, setTideData] = useState<TideData | null>(null); // Tide data
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [tideData, setTideData] = useState<TideData | null>(null);
 
   useEffect(() => {
     const binRef = ref(database, "bin");
@@ -71,7 +82,7 @@ const UserHomeScreen = () => {
     // Calculate trash level percentage
     const calculateTrashLevel = (distance: number): number => {
       const maxDistance = 100; // 100cm = 0% (empty)
-      const minDistance = 0; // 0cm = 100% (full)
+      const minDistance = 2; // 0cm = 100% (full)
 
       if (distance >= maxDistance) return 0; // Bin is empty
       if (distance <= minDistance) return 100; // Bin is full
@@ -89,10 +100,29 @@ const UserHomeScreen = () => {
   useEffect(() => {
     // 10-second validation timer
     if (isValidating) {
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
         // If the distance is still within 100cm after 10 seconds, consider it valid
         if (binData.distance !== null && binData.distance <= 100) { // Adjust threshold if needed
           setValidatedTrashLevel(trashLevel); // Set validated trash level
+
+          // Check for notification thresholds
+          if ([90, 95, 100].includes(trashLevel)) {
+            const datetime = new Date().toISOString();
+            const notification = { trashLevel, datetime };
+
+            // Add notification to Firestore
+            try {
+              await addDoc(collection(db, "notifications"), {
+                notificationId: `${datetime}-${trashLevel}`,
+                trashLevel,
+                datetime,
+              });
+              setHasNewNotifications(true); // Set new notifications flag
+              setNotifications((prev) => [...prev, notification]);
+            } catch (error) {
+              console.error("Error adding notification: ", error);
+            }
+          }
         }
         setIsValidating(false); // Stop validation
       }, 1000); // 1 sec validation
@@ -117,6 +147,30 @@ const UserHomeScreen = () => {
 
     fetchWeather();
   }, [binData.gps.latitude, binData.gps.longitude]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "notifications"));
+        const fetchedNotifications = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            trashLevel: data.trashLevel,
+            datetime: data.datetime,
+          } as Notification;
+        });
+        
+        // Sort notifications by datetime in descending order
+        fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+
+        setNotifications(fetchedNotifications);
+      } catch (error) {
+        console.error("Error fetching notifications: ", error);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
 
   // useEffect(() => {
   //   const fetchTideData = async () => {
@@ -151,6 +205,11 @@ const UserHomeScreen = () => {
     } catch (error) {
       console.error('Error signing out: ', error);
     }
+  };
+
+  const handleOpenModal = () => {
+    setIsModalVisible(true);
+    setHasNewNotifications(false); // Mark notifications as read
   };
 
   return (
@@ -206,6 +265,17 @@ const UserHomeScreen = () => {
         </MapView>
       )}
 
+      <TouchableOpacity onPress={handleOpenModal} style={styles.notificationBell}>
+        <FontAwesome name="bell" size={24} color="black" />
+        {hasNewNotifications && <View style={styles.notificationDot} />}
+      </TouchableOpacity>
+
+      <NotificationModal
+        visible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        notifications={notifications}
+      />
+
       <Button title="Logout" onPress={handleLogout} />
     </View>
   );
@@ -244,6 +314,20 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 300,
     marginTop: 20,
+  },
+  notificationBell: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'red',
   },
 });
 

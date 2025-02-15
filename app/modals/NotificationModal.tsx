@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, Button, StyleSheet } from 'react-native';
+import { Modal, View, Text, Button, StyleSheet, ScrollView } from 'react-native';
 
 interface NotificationModalProps {
   visible: boolean;
@@ -13,12 +13,14 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ visible, onClose,
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Notifications</Text>
-          {notifications.map((notification, index) => (
-            <View key={index} style={styles.notificationItem}>
-              <Text>Trash Level: {notification.trashLevel}%</Text>
-              <Text>DateTime: {notification.datetime}</Text>
-            </View>
-          ))}
+          <ScrollView style={styles.scrollView}>
+            {notifications.map((notification, index) => (
+              <View key={index} style={styles.notificationItem}>
+                <Text>Trash Level: {notification.trashLevel}%</Text>
+                <Text>DateTime: {notification.datetime}</Text>
+              </View>
+            ))}
+          </ScrollView>
           <Button title="Close" onPress={onClose} />
         </View>
       </View>
@@ -43,6 +45,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 20,
+  },
+  scrollView: {
+    maxHeight: 300,
   },
   notificationItem: {
     marginBottom: 10,
