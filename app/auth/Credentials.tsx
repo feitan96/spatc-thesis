@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, TextInput, Button, Alert, StyleSheet, Text } from "react-native";
+import { View, TextInput, Button, Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { router } from "expo-router";
 import uuid from 'react-native-uuid';
 import Toast from "react-native-toast-message";
+import { globalStyles, colors } from '../../src/styles/styles';
 
 const CredentialsScreen = () => {
   const [firstName, setFirstName] = useState("");
@@ -53,55 +54,41 @@ const CredentialsScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Enter Your Credentials</Text>
+    <View style={globalStyles.container}>
+      <Text style={globalStyles.title}>Enter Your Credentials</Text>
       <TextInput
-        style={styles.input}
+        style={globalStyles.input}
         placeholder="First Name"
+        placeholderTextColor={colors.tertiary}
         value={firstName}
         onChangeText={setFirstName}
       />
       <TextInput
-        style={styles.input}
+        style={globalStyles.input}
         placeholder="Last Name"
+        placeholderTextColor={colors.tertiary}
         value={lastName}
         onChangeText={setLastName}
       />
       <TextInput
-        style={styles.input}
+        style={globalStyles.input}
         placeholder="Contact Number"
+        placeholderTextColor={colors.tertiary}
         value={contactNumber}
         onChangeText={setContactNumber}
       />
       <TextInput
-        style={styles.input}
+        style={globalStyles.input}
         placeholder="Address"
+        placeholderTextColor={colors.tertiary}
         value={address}
         onChangeText={setAddress}
       />
-      <Button title="Submit" onPress={handleSubmit} />
+      <TouchableOpacity style={globalStyles.button} onPress={handleSubmit}>
+        <Text style={globalStyles.buttonText}>Submit</Text>
+      </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  input: {
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    marginBottom: 16,
-    paddingHorizontal: 8,
-  },
-});
 
 export default CredentialsScreen;
