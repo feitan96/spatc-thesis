@@ -10,6 +10,8 @@ import { auth } from "../../firebaseConfig";
 import { router } from "expo-router";
 import axios from "axios";
 import { collection, addDoc, getDocs } from "firebase/firestore";
+import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 const UserHomeScreen = () => {
   const [binData, setBinData] = useState({
@@ -98,55 +100,38 @@ const UserHomeScreen = () => {
   }, [binData.distance]);
 
   useEffect(() => {
-    // 10-second validation timer
     if (isValidating) {
       const timer = setTimeout(async () => {
-        // If the distance is still within 100cm after 10 seconds, consider it valid
-        if (binData.distance !== null && binData.distance <= 100) { // Adjust threshold if needed
-          setValidatedTrashLevel(trashLevel); // Set validated trash level
-
-          // Check for notification thresholds
+        if (binData.distance !== null && binData.distance <= 100) {
+          setValidatedTrashLevel(trashLevel);
+  
           if ([90, 95, 100].includes(trashLevel)) {
-            const datetime = new Date().toISOString();
-            const notification = { trashLevel, datetime };
-
-            // Add notification to Firestore
+            const now = new Date();
+            const timeZone = 'Asia/Manila';
+            const zonedDate = toZonedTime(now, timeZone);
+            const formattedDatetime = format(zonedDate, 'yyyy-MM-dd hh:mm:ss aa');
+  
+            const notification = { trashLevel, datetime: formattedDatetime };
+  
             try {
               await addDoc(collection(db, "notifications"), {
-                notificationId: `${datetime}-${trashLevel}`,
+                notificationId: `${formattedDatetime}-${trashLevel}`,
                 trashLevel,
-                datetime,
+                datetime: formattedDatetime,
               });
-              setHasNewNotifications(true); // Set new notifications flag
+              setHasNewNotifications(true);
               setNotifications((prev) => [...prev, notification]);
             } catch (error) {
               console.error("Error adding notification: ", error);
             }
           }
         }
-        setIsValidating(false); // Stop validation
-      }, 1000); // 1 sec validation
-
-      return () => clearTimeout(timer); // Cleanup timer
+        setIsValidating(false);
+      }, 1000);
+  
+      return () => clearTimeout(timer);
     }
   }, [isValidating, binData.distance, trashLevel]);
-
-  useEffect(() => {
-    const fetchWeather = async () => {
-      if (binData.gps.latitude && binData.gps.longitude) {
-        try {
-          const response = await axios.get(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&appid=${API_KEY}&units=metric`
-          );
-          setWeather(response.data);
-        } catch (error) {
-          console.error("Error fetching weather data: ", error);
-        }
-      }
-    };
-
-    fetchWeather();
-  }, [binData.gps.latitude, binData.gps.longitude]);
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -171,6 +156,23 @@ const UserHomeScreen = () => {
 
     fetchNotifications();
   }, []);
+  
+  useEffect(() => {
+    const fetchWeather = async () => {
+      if (binData.gps.latitude && binData.gps.longitude) {
+        try {
+          const response = await axios.get(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&appid=${API_KEY}&units=metric`
+          );
+          setWeather(response.data);
+        } catch (error) {
+          console.error("Error fetching weather data: ", error);
+        }
+      }
+    };
+
+    fetchWeather();
+  }, [binData.gps.latitude, binData.gps.longitude]);
 
   // useEffect(() => {
   //   const fetchTideData = async () => {
