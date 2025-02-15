@@ -1,8 +1,7 @@
-// firebaseConfig.ts
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getDatabase } from "firebase/database"; // Import for Realtime Database
+import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDLwSbPMUnfDZn2kpgJ32cVeC4n4lnZ3TI",

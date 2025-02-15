@@ -10,7 +10,7 @@ import axios from "axios";
 
 const UserHomeScreen = () => {
   const [binData, setBinData] = useState({
-    distance: null, // Distance in cm
+    distance: null,
     gps: {
       altitude: null,
       latitude: null,
@@ -18,18 +18,27 @@ const UserHomeScreen = () => {
     },
   });
 
-  const [trashLevel, setTrashLevel] = useState(0); // Trash level percentage
-  const [validatedTrashLevel, setValidatedTrashLevel] = useState(0); // Validated trash level percentage
-  const [isValidating, setIsValidating] = useState(false); // Validation state
+  const [trashLevel, setTrashLevel] = useState(0);
+  const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
+  const [isValidating, setIsValidating] = useState(false);
 
   const API_KEY = "d1b379e89fe87076140d9462009828b2";
+  const WORLD_TIDES_API_KEY = "2f783ec9-ed24-4340-b503-7208bcd9b282";
+
   interface WeatherData {
     weather: { description: string }[];
     main: { temp: number; humidity: number };
     wind: { speed: number };
   }
 
+  interface TideData {
+    currentTide: number;
+    nextHighTide: string;
+    nextLowTide: string;
+  }
+
   const [weather, setWeather] = useState<WeatherData | null>(null); // Weather data
+  const [tideData, setTideData] = useState<TideData | null>(null); // Tide data
 
   useEffect(() => {
     const binRef = ref(database, "bin");
@@ -109,6 +118,32 @@ const UserHomeScreen = () => {
     fetchWeather();
   }, [binData.gps.latitude, binData.gps.longitude]);
 
+  // useEffect(() => {
+  //   const fetchTideData = async () => {
+  //     if (binData.gps.latitude && binData.gps.longitude) {
+  //       try {
+  //         const url = `https://www.worldtides.info/api/v2?heights&lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&key=${WORLD_TIDES_API_KEY}`;
+  //         console.log("Fetching tide data from URL: ", url);
+  //         const response = await axios.get(url);
+  //         const tides = response.data.heights;
+  //         const currentTide = tides[0]?.height;
+  //         const nextHighTide = tides.find((tide: any) => tide.type === "high")?.dt;
+  //         const nextLowTide = tides.find((tide: any) => tide.type === "low")?.dt;
+  
+  //         setTideData({
+  //           currentTide,
+  //           nextHighTide: nextHighTide ? new Date(nextHighTide * 1000).toLocaleTimeString() : "N/A",
+  //           nextLowTide: nextLowTide ? new Date(nextLowTide * 1000).toLocaleTimeString() : "N/A",
+  //         });
+  //       } catch (error) {
+  //         console.error("Error fetching tide data: ", error);
+  //       }
+  //     }
+  //   };
+  
+  //   fetchTideData();
+  // }, [binData.gps.latitude, binData.gps.longitude]);
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -122,7 +157,7 @@ const UserHomeScreen = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Bin Data</Text>
       <Text style={styles.dataText}>Distance: {binData.distance} cm</Text>
-      <Text style={styles.dataText}>Trash Level: {trashLevel}%</Text>
+      {/* <Text style={styles.dataText}>Trash Level: {trashLevel}%</Text> */}
       <Text style={styles.dataText}>Validated Trash Level: {validatedTrashLevel}%</Text>
       <Text style={styles.dataText}>Altitude: {binData.gps.altitude}</Text>
       <Text style={styles.dataText}>Latitude: {binData.gps.latitude}</Text>
@@ -137,12 +172,20 @@ const UserHomeScreen = () => {
         </View>
       )}
 
+      {/* {tideData && (
+        <View>
+          <Text style={styles.tideText}>Current Tide: {tideData.currentTide} m</Text>
+          <Text style={styles.tideText}>Next High Tide: {tideData.nextHighTide}</Text>
+          <Text style={styles.tideText}>Next Low Tide: {tideData.nextLowTide}</Text>
+        </View>
+      )} */}
+
       {isValidating && (
         <Text style={styles.validationText}>Validating trash level...</Text>
       )}
 
-       {/* Map View */}
-       {binData.gps.latitude && binData.gps.longitude && (
+      {/* Map View */}
+      {binData.gps.latitude && binData.gps.longitude && (
         <MapView
           style={styles.map}
           initialRegion={{
@@ -190,6 +233,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   weatherText: {
+    fontSize: 18,
+    marginTop: 10,
+  },
+  tideText: {
     fontSize: 18,
     marginTop: 10,
   },
