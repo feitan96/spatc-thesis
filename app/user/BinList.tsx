@@ -33,23 +33,11 @@ const BinList = () => {
     router.push({ pathname: "/user/UserHome", params: { binName } });
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.replace('/auth/Login');
-    } catch (error) {
-      console.error('Error signing out: ', error);
-    }
-  };
-
   return (
     <View style={{ flex: 1 }}>
         <ScrollView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Select a Bin</Text>
-                <TouchableOpacity onPress={handleLogout} style={styles.icon}>
-                <FontAwesome name="sign-out" size={24} color={colors.primary} />
-            </TouchableOpacity>
             </View>
         {bins.map((bin) => (
             <TouchableOpacity key={bin} style={styles.binItem} onPress={() => handleBinPress(bin)}>

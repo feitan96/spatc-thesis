@@ -214,15 +214,6 @@ const UserHomeScreen = () => {
   //   fetchTideData();
   // }, [binData.gps.latitude, binData.gps.longitude]);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.replace('/auth/Login');
-    } catch (error) {
-      console.error('Error signing out: ', error);
-    }
-  };
-
   const handleOpenModal = () => {
     setIsModalVisible(true);
     setHasNewNotifications(false); // Mark notifications as read
@@ -245,9 +236,6 @@ const UserHomeScreen = () => {
         <View style={styles.header}>
           <Text style={styles.title}>Bin Data: {binName}</Text>
           <View style={styles.iconContainer}>
-            <TouchableOpacity onPress={handleLogout} style={styles.icon}>
-              <FontAwesome name="sign-out" size={24} color={colors.primary} />
-            </TouchableOpacity>
             <TouchableOpacity onPress={handleOpenModal} style={styles.notificationBell}>
               <FontAwesome name="bell" size={24} color={colors.primary} />
               {hasNewNotifications && <View style={styles.notificationDot} />}
