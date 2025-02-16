@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import NotificationModal from "../modals/NotificationModal";
 import { FontAwesome } from '@expo/vector-icons';
-import { View, Text, StyleSheet, TouchableOpacity, Button, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { ref, onValue } from "firebase/database";
 import { database, db } from "../../firebaseConfig";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
-import { router } from "expo-router";
+import { router, useLocalSearchParams  } from "expo-router";
 import axios from "axios";
 import { collection, addDoc, getDocs } from "firebase/firestore";
 import { format } from 'date-fns';
@@ -15,6 +15,7 @@ import { toZonedTime } from 'date-fns-tz';
 import { colors } from "../../src/styles/styles"
 
 const UserHomeScreen = () => {
+  const { binName } = useLocalSearchParams<{ binName: string }>();
   const [trashLevel, setTrashLevel] = useState(0);
   const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
@@ -57,31 +58,33 @@ const UserHomeScreen = () => {
   const [tideData, setTideData] = useState<TideData | null>(null);
 
   useEffect(() => {
-    const binRef = ref(database, "bin");
+    if (binName) {
+      const binRef = ref(database, binName);
 
-    // Listen for changes in the "bin" node
-    const unsubscribe = onValue(binRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const newDistance = data["distance(cm)"];
+      // Listen for changes in the selected bin node
+      const unsubscribe = onValue(binRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const newDistance = data["distance(cm)"];
 
-        // Update the bin data
-        setBinData({
-          distance: newDistance,
-          gps: data.gps,
-        });
+          // Update the bin data
+          setBinData({
+            distance: newDistance,
+            gps: data.gps,
+          });
 
-        // Start validation if the distance is within 100cm (full)
-        if (newDistance <= 100) { // Adjust threshold if needed
-          setIsValidating(true);
-        } else {
-          setIsValidating(false);
+          // Start validation if the distance is within 100cm (full)
+          if (newDistance <= 100) { // Adjust threshold if needed
+            setIsValidating(true);
+          } else {
+            setIsValidating(false);
+          }
         }
-      }
-    });
+      });
 
-    return () => unsubscribe();
-  }, []);
+      return () => unsubscribe();
+    }
+  }, [binName]);
 
   useEffect(() => {
     // Calculate trash level percentage
@@ -231,7 +234,7 @@ const UserHomeScreen = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Bin Data</Text>
+        <Text style={styles.title}>Bin Data: {binName}</Text>
         <View style={styles.iconContainer}>
           <TouchableOpacity onPress={handleLogout} style={styles.icon}>
             <FontAwesome name="sign-out" size={24} color={colors.primary} />
@@ -286,8 +289,8 @@ const UserHomeScreen = () => {
               latitude: binData.gps.latitude,
               longitude: binData.gps.longitude,
             }}
-            title="Bin Location"
-            description="Real-time location of the bin"
+            title={`${binName || "Unknown"}`}
+            description="Real-time location"
           />
         </MapView>
       </View>
@@ -312,7 +315,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 15,
   },
   title: {
     fontSize: 28,
