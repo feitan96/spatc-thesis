@@ -13,7 +13,6 @@ const RegisterScreen = () => {
 
   const handleRegister = async () => {
     try {
-      // Check if email already exists
       const q = query(collection(db, "users"), where("email", "==", email));
       const querySnapshot = await getDocs(q);
 
@@ -27,11 +26,9 @@ const RegisterScreen = () => {
         return;
       }
 
-      // Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const userId = userCredential.user.uid;
 
-      // Redirect to Credentials screen
       Toast.show({
         type: 'info',
         text1: 'New Account',

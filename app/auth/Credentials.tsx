@@ -18,7 +18,6 @@ const CredentialsScreen = () => {
     if (user) {
       setEmail(user.email ?? "");
     } else {
-      // Handle case where user is not logged in
       Alert.alert("Error", "No authenticated user found.");
       router.replace("/auth/Login");
     }
@@ -37,10 +36,8 @@ const CredentialsScreen = () => {
         return;
       }
 
-      // Use the authenticated user's UID as the document ID
       const userId = user.uid;
 
-      // Save user details to Firestore
       await setDoc(doc(db, "users", userId), {
         userId,
         email,

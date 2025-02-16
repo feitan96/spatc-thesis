@@ -6,14 +6,13 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-nati
 import MapView, { Marker } from "react-native-maps";
 import { ref, onValue } from "firebase/database";
 import { database, db } from "../../firebaseConfig";
-import { signOut } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
-import { router, useLocalSearchParams  } from "expo-router";
+import { useLocalSearchParams  } from "expo-router";
 import axios from "axios";
 import { collection, addDoc, getDocs } from "firebase/firestore";
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { colors } from "../../src/styles/styles"
+import Spinner from "../components/Spinner";
 
 const UserHomeScreen = () => {
   const { binName } = useLocalSearchParams<{ binName: string }>();
@@ -23,6 +22,7 @@ const UserHomeScreen = () => {
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const API_KEY = "d1b379e89fe87076140d9462009828b2";
   const WORLD_TIDES_API_KEY = "2f783ec9-ed24-4340-b503-7208bcd9b282";
@@ -120,7 +120,8 @@ const UserHomeScreen = () => {
             const formattedDatetime = format(zonedDate, 'yyyy-MM-dd hh:mm:ss aa');
   
             const notification = { trashLevel, datetime: formattedDatetime, bin: binName };
-  
+            
+            setIsLoading(true)
             try {
               await addDoc(collection(db, "notifications"), {
                 notificationId: `${formattedDatetime}-${trashLevel}`,
@@ -132,6 +133,8 @@ const UserHomeScreen = () => {
               setNotifications((prev) => [...prev, notification]);
             } catch (error) {
               console.error("Error adding notification: ", error);
+            } finally {
+              setIsLoading(false);
             }
           }
         }
@@ -144,6 +147,8 @@ const UserHomeScreen = () => {
 
   useEffect(() => {
     const fetchNotifications = async () => {
+
+      setIsLoading(true);
       try {
         const querySnapshot = await getDocs(collection(db, "notifications"));
         const fetchedNotifications = querySnapshot.docs
@@ -163,17 +168,21 @@ const UserHomeScreen = () => {
         setNotifications(fetchedNotifications);
       } catch (error) {
         console.error("Error fetching notifications: ", error);
+      } finally {
+        setIsLoading(false);
       }
     };
   
     if (binName) {
-      fetchNotifications(); // Fetch notifications only if binName is available
+      fetchNotifications(); 
     }
-  }, [binName]); // Add binName to dependencies
+  }, [binName]); 
   
   useEffect(() => {
     const fetchWeather = async () => {
       if (binData.gps.latitude && binData.gps.longitude) {
+
+        setIsLoading(true);
         try {
           const response = await axios.get(
             `https://api.openweathermap.org/data/2.5/weather?lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&appid=${API_KEY}&units=metric`
@@ -181,6 +190,8 @@ const UserHomeScreen = () => {
           setWeather(response.data);
         } catch (error) {
           console.error("Error fetching weather data: ", error);
+        } finally {
+          setIsLoading(false);
         }
       }
     };
@@ -230,11 +241,15 @@ const UserHomeScreen = () => {
     }
   };
 
+  if (isLoading) {
+    return <Spinner />;
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Bin Data: {binName}</Text>
+          <Text style={styles.title}>{binName}</Text>
           <View style={styles.iconContainer}>
             <TouchableOpacity onPress={handleOpenModal} style={styles.notificationBell}>
               <FontAwesome name="bell" size={24} color={colors.primary} />

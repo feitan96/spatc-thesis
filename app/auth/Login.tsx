@@ -1,29 +1,32 @@
 // app/auth/LoginScreen.tsx
 import React, { useState } from "react";
-import { View, TextInput, Button, Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { View, TextInput, Alert, Text, TouchableOpacity } from "react-native";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
 import { router } from "expo-router";
 import Toast from 'react-native-toast-message';
 import { globalStyles, colors } from '../../src/styles/styles';
+import Spinner from "../components/Spinner";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
+    setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userId = userCredential.user.uid;
       if (userId === "adminUserId") {
-        router.replace("/admin/AdminHome"); // Navigate to admin home
+        router.replace("/admin/AdminHome");
       } else {
         Toast.show({
                   type: 'success',
                   text1: 'User Login Successful!',
                   text2: 'Navigating to Homescreen...',
           });
-        router.replace("/user/BinList"); // Navigate to user home
+        router.replace("/user/BinList");
       }
     } catch (error) {
       Toast.show({
@@ -32,8 +35,39 @@ const LoginScreen = () => {
         text2: 'Try again',
       });
       Alert.alert("Login Failed", (error as Error).message);
+    }finally {
+      setIsLoading(false);
     }
   };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      Alert.alert("Error", "Please enter your email address.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Toast.show({
+        type: 'success',
+        text1: 'Password Reset Email Sent',
+        text2: 'Check your email to reset your password.',
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Password Reset Failed',
+        text2: (error as Error).message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return <Spinner />;
+  }
 
   return (
     <View style={globalStyles.container}>
@@ -56,6 +90,11 @@ const LoginScreen = () => {
       />
       <TouchableOpacity style={globalStyles.button} onPress={handleLogin}>
         <Text style={globalStyles.buttonText}>Login</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handlePasswordReset}>
+        <Text style={globalStyles.linkText}>
+          Forgot Password? <Text style={globalStyles.link}>Reset Password</Text>
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push("/auth/Register")}>
         <Text style={globalStyles.linkText}>

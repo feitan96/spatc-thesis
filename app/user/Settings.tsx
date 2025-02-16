@@ -19,6 +19,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore"
 import { signOut } from "firebase/auth"
 import { router } from "expo-router"
 import Toast from "react-native-toast-message"
+import Spinner from "../components/Spinner"
 
 const SettingsScreen = () => {
   const [userData, setUserData] = useState({
@@ -29,23 +30,31 @@ const SettingsScreen = () => {
     address: "",
   })
   const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const userId = auth.currentUser?.uid
-      if (userId) {
-        const userDocRef = doc(db, "users", userId)
-        const userDoc = await getDoc(userDocRef)
-        if (userDoc.exists()) {
-          setUserData(userDoc.data() as typeof userData)
-        } else {
-          console.error("User document does not exist.")
+      setIsLoading(true);
+      try {
+        const userId = auth.currentUser?.uid;
+        if (userId) {
+          const userDocRef = doc(db, "users", userId);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setUserData(userDoc.data() as typeof userData);
+          } else {
+            console.error("User document does not exist.");
+          }
         }
+      } catch (error) {
+        console.error("Error fetching user data: ", error);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchUserData()
-  }, [])
+    fetchUserData();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setUserData((prev) => ({ ...prev, [field]: value }))
@@ -63,6 +72,7 @@ const SettingsScreen = () => {
       return
     }
 
+    setIsLoading(true)
     try {
       const userId = auth.currentUser?.uid
       if (userId) {
@@ -90,6 +100,8 @@ const SettingsScreen = () => {
         text1: "Update Failed",
         text2: "An error occurred while saving your changes.",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -118,10 +130,15 @@ const SettingsScreen = () => {
     </View>
   )
 
+  
+  if (isLoading) {
+    return <Spinner />
+  }
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>Profile</Text>
 
         {renderField("First Name", userData.firstName, "firstName")}
         {renderField("Last Name", userData.lastName, "lastName")}
