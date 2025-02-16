@@ -34,7 +34,7 @@ const BinList = () => {
   }, []);
 
   const handleBinPress = (binName: string) => {
-    router.push({ pathname: "/user/UserHome", params: { binName } });
+    router.push({ pathname: "/user/BinData", params: { binName } });
   };
 
   if (isLoading) {

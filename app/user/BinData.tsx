@@ -14,7 +14,7 @@ import { toZonedTime } from 'date-fns-tz';
 import { colors } from "../../src/styles/styles"
 import Spinner from "../components/Spinner";
 
-const UserHomeScreen = () => {
+const BinData = () => {
   const { binName } = useLocalSearchParams<{ binName: string }>();
   const [trashLevel, setTrashLevel] = useState(0);
   const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
@@ -422,4 +422,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default UserHomeScreen
+export default BinData
