@@ -1,12 +1,12 @@
-import type React from "react"
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from "react-native"
-import { FontAwesome } from "@expo/vector-icons"
-import { globalStyles, colors } from "../../src/styles/styles"
+import type React from "react";
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+import { globalStyles, colors } from "../../src/styles/styles";
 
 interface NotificationModalProps {
-  visible: boolean
-  onClose: () => void
-  notifications: { trashLevel: number; datetime: string }[]
+  visible: boolean;
+  onClose: () => void;
+  notifications: { trashLevel: number; datetime: string }[];
 }
 
 const NotificationModal: React.FC<NotificationModalProps> = ({ visible, onClose, notifications }) => {
@@ -21,29 +21,35 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ visible, onClose,
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.scrollView}>
-            {notifications.map((notification, index) => (
-              <View key={index} style={styles.notificationItem}>
-                <View style={styles.iconContainer}>
-                  <FontAwesome
-                    name={notification.trashLevel >= 90 ? "exclamation-triangle" : "info-circle"}
-                    size={24}
-                    color={notification.trashLevel >= 90 ? colors.secondary : colors.primary}
-                  />
-                </View>
-                <View style={styles.notificationContent}>
-                  <Text style={styles.trashLevelText}>
-                    Trash Level: <Text style={styles.trashLevelValue}>{notification.trashLevel}%</Text>
-                  </Text>
-                  <Text style={styles.datetimeText}>{notification.datetime}</Text>
-                </View>
+            {notifications.length === 0 ? ( // Check if notifications array is empty
+              <View style={styles.placeholderContainer}>
+                <Text style={styles.placeholderText}>No notifications available.</Text>
               </View>
-            ))}
+            ) : (
+              notifications.map((notification, index) => (
+                <View key={index} style={styles.notificationItem}>
+                  <View style={styles.iconContainer}>
+                    <FontAwesome
+                      name={notification.trashLevel >= 90 ? "exclamation-triangle" : "info-circle"}
+                      size={24}
+                      color={notification.trashLevel >= 90 ? colors.secondary : colors.primary}
+                    />
+                  </View>
+                  <View style={styles.notificationContent}>
+                    <Text style={styles.trashLevelText}>
+                      Trash Level: <Text style={styles.trashLevelValue}>{notification.trashLevel}%</Text>
+                    </Text>
+                    <Text style={styles.datetimeText}>{notification.datetime}</Text>
+                  </View>
+                </View>
+              ))
+            )}
           </ScrollView>
         </View>
       </SafeAreaView>
     </Modal>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   modalContainer: {
@@ -104,7 +110,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.tertiary,
   },
-})
+  placeholderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: colors.tertiary,
+    textAlign: "center",
+  },
+});
 
-export default NotificationModal
-
+export default NotificationModal;

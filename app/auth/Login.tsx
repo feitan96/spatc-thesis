@@ -23,7 +23,7 @@ const LoginScreen = () => {
                   text1: 'User Login Successful!',
                   text2: 'Navigating to Homescreen...',
           });
-        router.replace("/user/UserHome"); // Navigate to user home
+        router.replace("/user/BinList"); // Navigate to user home
       }
     } catch (error) {
       Toast.show({
