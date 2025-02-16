@@ -1,14 +1,30 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Button } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import NotificationModal from "../modals/NotificationModal";
+import { FontAwesome } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, Button, ScrollView } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { ref, onValue } from "firebase/database";
-import { database } from "../../firebaseConfig";
+import { database, db } from "../../firebaseConfig";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
 import { router } from "expo-router";
 import axios from "axios";
+import { collection, addDoc, getDocs } from "firebase/firestore";
+import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { colors } from "../../src/styles/styles"
 
 const UserHomeScreen = () => {
+  const [trashLevel, setTrashLevel] = useState(0);
+  const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
+  const [isValidating, setIsValidating] = useState(false);
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  
+  const API_KEY = "d1b379e89fe87076140d9462009828b2";
+  const WORLD_TIDES_API_KEY = "2f783ec9-ed24-4340-b503-7208bcd9b282";
+  
   const [binData, setBinData] = useState({
     distance: null,
     gps: {
@@ -18,12 +34,12 @@ const UserHomeScreen = () => {
     },
   });
 
-  const [trashLevel, setTrashLevel] = useState(0);
-  const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
-  const [isValidating, setIsValidating] = useState(false);
+  const mapRef = useRef<MapView>(null);
 
-  const API_KEY = "d1b379e89fe87076140d9462009828b2";
-  const WORLD_TIDES_API_KEY = "2f783ec9-ed24-4340-b503-7208bcd9b282";
+  interface Notification {
+    trashLevel: number;
+    datetime: string;
+  }
 
   interface WeatherData {
     weather: { description: string }[];
@@ -37,8 +53,8 @@ const UserHomeScreen = () => {
     nextLowTide: string;
   }
 
-  const [weather, setWeather] = useState<WeatherData | null>(null); // Weather data
-  const [tideData, setTideData] = useState<TideData | null>(null); // Tide data
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [tideData, setTideData] = useState<TideData | null>(null);
 
   useEffect(() => {
     const binRef = ref(database, "bin");
@@ -71,7 +87,7 @@ const UserHomeScreen = () => {
     // Calculate trash level percentage
     const calculateTrashLevel = (distance: number): number => {
       const maxDistance = 100; // 100cm = 0% (empty)
-      const minDistance = 0; // 0cm = 100% (full)
+      const minDistance = 2; // 0cm = 100% (full)
 
       if (distance >= maxDistance) return 0; // Bin is empty
       if (distance <= minDistance) return 100; // Bin is full
@@ -87,20 +103,63 @@ const UserHomeScreen = () => {
   }, [binData.distance]);
 
   useEffect(() => {
-    // 10-second validation timer
     if (isValidating) {
-      const timer = setTimeout(() => {
-        // If the distance is still within 100cm after 10 seconds, consider it valid
-        if (binData.distance !== null && binData.distance <= 100) { // Adjust threshold if needed
-          setValidatedTrashLevel(trashLevel); // Set validated trash level
+      const timer = setTimeout(async () => {
+        if (binData.distance !== null && binData.distance <= 100) {
+          setValidatedTrashLevel(trashLevel);
+  
+          if ([90, 95, 100].includes(trashLevel)) {
+            const now = new Date();
+            const timeZone = 'Asia/Manila';
+            const zonedDate = toZonedTime(now, timeZone);
+            const formattedDatetime = format(zonedDate, 'yyyy-MM-dd hh:mm:ss aa');
+  
+            const notification = { trashLevel, datetime: formattedDatetime };
+  
+            try {
+              await addDoc(collection(db, "notifications"), {
+                notificationId: `${formattedDatetime}-${trashLevel}`,
+                trashLevel,
+                datetime: formattedDatetime,
+              });
+              setHasNewNotifications(true);
+              setNotifications((prev) => [...prev, notification]);
+            } catch (error) {
+              console.error("Error adding notification: ", error);
+            }
+          }
         }
-        setIsValidating(false); // Stop validation
-      }, 1000); // 1 sec validation
-
-      return () => clearTimeout(timer); // Cleanup timer
+        setIsValidating(false);
+      }, 1000);
+  
+      return () => clearTimeout(timer);
     }
   }, [isValidating, binData.distance, trashLevel]);
 
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "notifications"));
+        const fetchedNotifications = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            trashLevel: data.trashLevel,
+            datetime: data.datetime,
+          } as Notification;
+        });
+        
+        // Sort notifications by datetime in descending order
+        fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+
+        setNotifications(fetchedNotifications);
+      } catch (error) {
+        console.error("Error fetching notifications: ", error);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+  
   useEffect(() => {
     const fetchWeather = async () => {
       if (binData.gps.latitude && binData.gps.longitude) {
@@ -153,40 +212,67 @@ const UserHomeScreen = () => {
     }
   };
 
+  const handleOpenModal = () => {
+    setIsModalVisible(true);
+    setHasNewNotifications(false); // Mark notifications as read
+  };
+
+  const handleFocus = () => {
+    if (mapRef.current && binData.gps.latitude && binData.gps.longitude) {
+      mapRef.current.animateToRegion({
+        latitude: binData.gps.latitude,
+        longitude: binData.gps.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Bin Data</Text>
-      <Text style={styles.dataText}>Distance: {binData.distance} cm</Text>
-      {/* <Text style={styles.dataText}>Trash Level: {trashLevel}%</Text> */}
-      <Text style={styles.dataText}>Validated Trash Level: {validatedTrashLevel}%</Text>
-      <Text style={styles.dataText}>Altitude: {binData.gps.altitude}</Text>
-      <Text style={styles.dataText}>Latitude: {binData.gps.latitude}</Text>
-      <Text style={styles.dataText}>Longitude: {binData.gps.longitude}</Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Bin Data</Text>
+        <View style={styles.iconContainer}>
+          <TouchableOpacity onPress={handleLogout} style={styles.icon}>
+            <FontAwesome name="sign-out" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleOpenModal} style={styles.notificationBell}>
+            <FontAwesome name="bell" size={24} color={colors.primary} />
+            {hasNewNotifications && <View style={styles.notificationDot} />}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.dataSection}>
+        <Text style={styles.dataText}>Distance: {binData.distance} cm</Text>
+        <Text style={styles.dataText}>Validated Trash Level: {validatedTrashLevel}%</Text>
+        <Text style={styles.dataText}>Altitude: {binData.gps.altitude}</Text>
+        <Text style={styles.dataText}>Latitude: {binData.gps.latitude}</Text>
+        <Text style={styles.dataText}>Longitude: {binData.gps.longitude}</Text>
+
+        {/* {isValidating && <Text style={styles.validationText}>Validating trash level...</Text>} */}
+      </View>
 
       {weather && (
-        <View>
-          <Text style={styles.weatherText}>Weather: {weather.weather[0].description}</Text>
-          <Text style={styles.weatherText}>Temperature: {weather.main.temp}°C</Text>
+        <View style={styles.weatherSection}>
+          <Text style={styles.sectionTitle}>Weather Information</Text>
+          <Text style={styles.dataText}>Weather: {weather.weather[0].description}</Text>
+          <Text style={styles.dataText}>Temperature: {weather.main.temp}°C</Text>
           <Text style={styles.dataText}>Humidity: {weather.main.humidity}%</Text>
           <Text style={styles.dataText}>Wind Speed: {weather.wind.speed} m/s</Text>
         </View>
       )}
 
-      {/* {tideData && (
-        <View>
-          <Text style={styles.tideText}>Current Tide: {tideData.currentTide} m</Text>
-          <Text style={styles.tideText}>Next High Tide: {tideData.nextHighTide}</Text>
-          <Text style={styles.tideText}>Next Low Tide: {tideData.nextLowTide}</Text>
-        </View>
-      )} */}
-
-      {isValidating && (
-        <Text style={styles.validationText}>Validating trash level...</Text>
-      )}
-
-      {/* Map View */}
       {binData.gps.latitude && binData.gps.longitude && (
+        <View style={styles.mapSection}>
+        <View style={styles.mapHeader}>
+          <Text style={styles.sectionTitle}>Bin Location</Text>
+          <TouchableOpacity onPress={handleFocus} style={styles.focusIcon}>
+            <FontAwesome name="crosshairs" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
         <MapView
+          ref={mapRef}
           style={styles.map}
           initialRegion={{
             latitude: binData.gps.latitude,
@@ -204,47 +290,119 @@ const UserHomeScreen = () => {
             description="Real-time location of the bin"
           />
         </MapView>
+      </View>
       )}
 
-      <Button title="Logout" onPress={handleLogout} />
-    </View>
-  );
-};
+      <NotificationModal
+        visible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        notifications={notifications}
+      />
+    </ScrollView>
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: colors.background,
     padding: 16,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: colors.primary,
+  },
+  dataSection: {
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+  },
+  weatherSection: {
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+  },
+  mapSection: {
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
+  },
+  mapHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.primary,
+    marginBottom: 8,
+  },
   dataText: {
-    fontSize: 18,
-    marginBottom: 10,
+    fontSize: 16,
+    color: colors.primary,
+    marginBottom: 8,
   },
   validationText: {
     fontSize: 16,
-    color: "orange",
-    marginTop: 10,
-  },
-  weatherText: {
-    fontSize: 18,
-    marginTop: 10,
-  },
-  tideText: {
-    fontSize: 18,
-    marginTop: 10,
+    color: colors.secondary,
+    marginTop: 8,
+    fontStyle: "italic",
   },
   map: {
     width: "100%",
     height: 300,
-    marginTop: 20,
+    borderRadius: 8,
+    marginTop: 8,
   },
-});
+  notificationBell: {
+    padding: 8,
+  },
+  notificationDot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'red',
+  },
+  logoutButton: {
+    backgroundColor: colors.secondary,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  logoutButtonText: {
+    color: colors.white,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  iconContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  icon: {
+    padding: 8,
+    marginRight: 8,
+  },
+  focusIcon: {
+    padding: 8,
+  },
+})
 
-export default UserHomeScreen;
+export default UserHomeScreen

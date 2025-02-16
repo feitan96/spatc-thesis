@@ -5,6 +5,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 import { router } from "expo-router";
 import Toast from 'react-native-toast-message';
+import { globalStyles, colors } from '../../src/styles/styles';
 
 const RegisterScreen = () => {
   const [email, setEmail] = useState("");
@@ -39,55 +40,34 @@ const RegisterScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
+    <View style={globalStyles.container}>
+      <Text style={globalStyles.title}>Register</Text>
       <TextInput
-        style={styles.input}
+        style={globalStyles.input}
         placeholder="Email"
+        placeholderTextColor={colors.tertiary}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
       />
       <TextInput
-        style={styles.input}
+        style={globalStyles.input}
         placeholder="Password"
+        placeholderTextColor={colors.tertiary}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
-      <Button title="Register" onPress={handleRegister} />
+      <TouchableOpacity style={globalStyles.button} onPress={handleRegister}>
+        <Text style={globalStyles.buttonText}>Register</Text>
+      </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push("/auth/Login")}>
-        <Text style={styles.linkText}>Already have an account? <Text style={styles.link}>Login</Text></Text>
+        <Text style={globalStyles.linkText}>
+          Already have an account? <Text style={globalStyles.link}>Login</Text>
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  input: {
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    marginBottom: 16,
-    paddingHorizontal: 8,
-  },
-  linkText: {
-    textAlign: "center",
-    color: "#000",
-  },
-  link: {
-    color: "#1E90FF",
-  },
-});
 
 export default RegisterScreen;
