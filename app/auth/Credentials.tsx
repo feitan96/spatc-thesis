@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { View, TextInput, Button, Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
 import { router } from "expo-router";
-import uuid from 'react-native-uuid';
 import Toast from "react-native-toast-message";
 import { globalStyles, colors } from '../../src/styles/styles';
 
@@ -18,6 +17,9 @@ const CredentialsScreen = () => {
     const user = auth.currentUser;
     if (user) {
       setEmail(user.email ?? "");
+    } else {
+      Alert.alert("Error", "No authenticated user found.");
+      router.replace("/auth/Login");
     }
   }, []);
 
@@ -28,8 +30,15 @@ const CredentialsScreen = () => {
     }
 
     try {
-      const userId = uuid.v4();
-      const docRef = await addDoc(collection(db, "users"), {
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert("Error", "No authenticated user found.");
+        return;
+      }
+
+      const userId = user.uid;
+
+      await setDoc(doc(db, "users", userId), {
         userId,
         email,
         firstName,
@@ -41,12 +50,13 @@ const CredentialsScreen = () => {
         updatedAt: serverTimestamp(),
         isDeleted: false,
       });
+
       Alert.alert("Credentials Saved Successfully!");
       Toast.show({
-            type: 'success',
-            text1: 'Account Creation Successful!',
-            text2: 'Navigating to Homescreen...',
-        });
+        type: 'success',
+        text1: 'Account Creation Successful!',
+        text2: 'Navigating to Homescreen...',
+      });
       router.replace("/user/BinList");
     } catch (error) {
       Alert.alert("Error", (error as Error).message);

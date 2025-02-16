@@ -26,13 +26,14 @@ const RegisterScreen = () => {
         return;
       }
 
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userId = userCredential.user.uid;
+
       Toast.show({
         type: 'info',
         text1: 'New Account',
         text2: 'Please fill in all credential fields',
       });
-      Alert.alert("Registration Successful!");
       router.replace("/auth/Credentials");
     } catch (error) {
       Alert.alert("Registration Failed", (error as Error).message);

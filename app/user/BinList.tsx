@@ -5,51 +5,46 @@ import { ref, onValue } from "firebase/database";
 import { database } from "../../firebaseConfig";
 import { router } from "expo-router";
 import { colors } from "../../src/styles/styles";
-import { signOut } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
-import { FontAwesome } from '@expo/vector-icons';
 import BottomBar from "../components/BottomBar"
+import Spinner from "../components/Spinner";
 
 const BinList = () => {
   const [bins, setBins] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const binsRef = ref(database);
 
-    // Fetch all bins from the database
-    const unsubscribe = onValue(binsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const binNames = Object.keys(data);
-        setBins(binNames);
-      }
+    setIsLoading(true);
+    try {
+      const unsubscribe = onValue(binsRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const binNames = Object.keys(data);
+          setBins(binNames);
+        }
     });
-
     return () => unsubscribe();
+    } catch (error) {
+      console.error("Error fetching bins: ", error);
+    } finally {
+      setIsLoading(false);
+    }
+
   }, []);
 
   const handleBinPress = (binName: string) => {
-    // Navigate to UserHome with the selected bin name
     router.push({ pathname: "/user/UserHome", params: { binName } });
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.replace('/auth/Login');
-    } catch (error) {
-      console.error('Error signing out: ', error);
-    }
-  };
-
+  if (isLoading) {
+    return <Spinner />
+  }
   return (
     <View style={{ flex: 1 }}>
         <ScrollView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Select a Bin</Text>
-                <TouchableOpacity onPress={handleLogout} style={styles.icon}>
-                <FontAwesome name="sign-out" size={24} color={colors.primary} />
-            </TouchableOpacity>
             </View>
         {bins.map((bin) => (
             <TouchableOpacity key={bin} style={styles.binItem} onPress={() => handleBinPress(bin)}>

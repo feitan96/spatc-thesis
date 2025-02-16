@@ -7,6 +7,7 @@ export const colors = {
   tertiary: '#9DB2BF',
   background: '#DDE6ED',
   white: '#FFFFFF',
+  semiTransparent: 'rgba(221, 230, 237, 0.1)',
 };
 
 export const globalStyles = StyleSheet.create({
