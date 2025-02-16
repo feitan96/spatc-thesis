@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import NotificationModal from "../modals/NotificationModal";
+import BottomBar from "../components/BottomBar";
 import { FontAwesome } from '@expo/vector-icons';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import MapView, { Marker } from "react-native-maps";
@@ -40,6 +41,7 @@ const UserHomeScreen = () => {
   interface Notification {
     trashLevel: number;
     datetime: string;
+    bin: string;
   }
 
   interface WeatherData {
@@ -117,13 +119,14 @@ const UserHomeScreen = () => {
             const zonedDate = toZonedTime(now, timeZone);
             const formattedDatetime = format(zonedDate, 'yyyy-MM-dd hh:mm:ss aa');
   
-            const notification = { trashLevel, datetime: formattedDatetime };
+            const notification = { trashLevel, datetime: formattedDatetime, bin: binName };
   
             try {
               await addDoc(collection(db, "notifications"), {
                 notificationId: `${formattedDatetime}-${trashLevel}`,
                 trashLevel,
                 datetime: formattedDatetime,
+                bin: binName,
               });
               setHasNewNotifications(true);
               setNotifications((prev) => [...prev, notification]);
@@ -143,25 +146,30 @@ const UserHomeScreen = () => {
     const fetchNotifications = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "notifications"));
-        const fetchedNotifications = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            trashLevel: data.trashLevel,
-            datetime: data.datetime,
-          } as Notification;
-        });
-        
+        const fetchedNotifications = querySnapshot.docs
+          .map((doc) => {
+            const data = doc.data();
+            return {
+              trashLevel: data.trashLevel,
+              datetime: data.datetime,
+              bin: data.bin, // Include the bin field
+            };
+          })
+          .filter((notification) => notification.bin === binName); // Filter by binName
+  
         // Sort notifications by datetime in descending order
         fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
-
+  
         setNotifications(fetchedNotifications);
       } catch (error) {
         console.error("Error fetching notifications: ", error);
       }
     };
-
-    fetchNotifications();
-  }, []);
+  
+    if (binName) {
+      fetchNotifications(); // Fetch notifications only if binName is available
+    }
+  }, [binName]); // Add binName to dependencies
   
   useEffect(() => {
     const fetchWeather = async () => {
@@ -232,76 +240,79 @@ const UserHomeScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Bin Data: {binName}</Text>
-        <View style={styles.iconContainer}>
-          <TouchableOpacity onPress={handleLogout} style={styles.icon}>
-            <FontAwesome name="sign-out" size={24} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleOpenModal} style={styles.notificationBell}>
-            <FontAwesome name="bell" size={24} color={colors.primary} />
-            {hasNewNotifications && <View style={styles.notificationDot} />}
-          </TouchableOpacity>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Bin Data: {binName}</Text>
+          <View style={styles.iconContainer}>
+            <TouchableOpacity onPress={handleLogout} style={styles.icon}>
+              <FontAwesome name="sign-out" size={24} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleOpenModal} style={styles.notificationBell}>
+              <FontAwesome name="bell" size={24} color={colors.primary} />
+              {hasNewNotifications && <View style={styles.notificationDot} />}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.dataSection}>
-        <Text style={styles.dataText}>Distance: {binData.distance} cm</Text>
-        <Text style={styles.dataText}>Validated Trash Level: {validatedTrashLevel}%</Text>
-        <Text style={styles.dataText}>Altitude: {binData.gps.altitude}</Text>
-        <Text style={styles.dataText}>Latitude: {binData.gps.latitude}</Text>
-        <Text style={styles.dataText}>Longitude: {binData.gps.longitude}</Text>
+        <View style={styles.dataSection}>
+          <Text style={styles.dataText}>Distance: {binData.distance} cm</Text>
+          <Text style={styles.dataText}>Validated Trash Level: {validatedTrashLevel}%</Text>
+          <Text style={styles.dataText}>Altitude: {binData.gps.altitude}</Text>
+          <Text style={styles.dataText}>Latitude: {binData.gps.latitude}</Text>
+          <Text style={styles.dataText}>Longitude: {binData.gps.longitude}</Text>
 
-        {/* {isValidating && <Text style={styles.validationText}>Validating trash level...</Text>} */}
-      </View>
-
-      {weather && (
-        <View style={styles.weatherSection}>
-          <Text style={styles.sectionTitle}>Weather Information</Text>
-          <Text style={styles.dataText}>Weather: {weather.weather[0].description}</Text>
-          <Text style={styles.dataText}>Temperature: {weather.main.temp}°C</Text>
-          <Text style={styles.dataText}>Humidity: {weather.main.humidity}%</Text>
-          <Text style={styles.dataText}>Wind Speed: {weather.wind.speed} m/s</Text>
+          {/* {isValidating && <Text style={styles.validationText}>Validating trash level...</Text>} */}
         </View>
-      )}
 
-      {binData.gps.latitude && binData.gps.longitude && (
-        <View style={styles.mapSection}>
-        <View style={styles.mapHeader}>
-          <Text style={styles.sectionTitle}>Bin Location</Text>
-          <TouchableOpacity onPress={handleFocus} style={styles.focusIcon}>
-            <FontAwesome name="crosshairs" size={24} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={{
-            latitude: binData.gps.latitude,
-            longitude: binData.gps.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-        >
-          <Marker
-            coordinate={{
+        {weather && (
+          <View style={styles.weatherSection}>
+            <Text style={styles.sectionTitle}>Weather Information</Text>
+            <Text style={styles.dataText}>Weather: {weather.weather[0].description}</Text>
+            <Text style={styles.dataText}>Temperature: {weather.main.temp}°C</Text>
+            <Text style={styles.dataText}>Humidity: {weather.main.humidity}%</Text>
+            <Text style={styles.dataText}>Wind Speed: {weather.wind.speed} m/s</Text>
+          </View>
+        )}
+
+        {binData.gps.latitude && binData.gps.longitude && (
+          <View style={styles.mapSection}>
+          <View style={styles.mapHeader}>
+            <Text style={styles.sectionTitle}>Bin Location</Text>
+            <TouchableOpacity onPress={handleFocus} style={styles.focusIcon}>
+              <FontAwesome name="crosshairs" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={{
               latitude: binData.gps.latitude,
               longitude: binData.gps.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
             }}
-            title={`${binName || "Unknown"}`}
-            description="Real-time location"
-          />
-        </MapView>
-      </View>
-      )}
+          >
+            <Marker
+              coordinate={{
+                latitude: binData.gps.latitude,
+                longitude: binData.gps.longitude,
+              }}
+              title={`${binName || "Unknown"}`}
+              description="Real-time location"
+            />
+          </MapView>
+        </View>
+        )}
 
-      <NotificationModal
-        visible={isModalVisible}
-        onClose={() => setIsModalVisible(false)}
-        notifications={notifications}
-      />
-    </ScrollView>
+        <NotificationModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          notifications={notifications}
+        />
+      </ScrollView>
+      <BottomBar />
+  </View>
   )
 }
 

@@ -8,6 +8,7 @@ import { colors } from "../../src/styles/styles";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
 import { FontAwesome } from '@expo/vector-icons';
+import BottomBar from "../components/BottomBar"
 
 const BinList = () => {
   const [bins, setBins] = useState<string[]>([]);
@@ -42,19 +43,22 @@ const BinList = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-        <View style={styles.header}>
-            <Text style={styles.title}>Select a Bin</Text>
-            <TouchableOpacity onPress={handleLogout} style={styles.icon}>
-            <FontAwesome name="sign-out" size={24} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-      {bins.map((bin) => (
-        <TouchableOpacity key={bin} style={styles.binItem} onPress={() => handleBinPress(bin)}>
-          <Text style={styles.binText}>{bin}</Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
+    <View style={{ flex: 1 }}>
+        <ScrollView style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.title}>Select a Bin</Text>
+                <TouchableOpacity onPress={handleLogout} style={styles.icon}>
+                <FontAwesome name="sign-out" size={24} color={colors.primary} />
+            </TouchableOpacity>
+            </View>
+        {bins.map((bin) => (
+            <TouchableOpacity key={bin} style={styles.binItem} onPress={() => handleBinPress(bin)}>
+            <Text style={styles.binText}>{bin}</Text>
+            </TouchableOpacity>
+        ))}
+        </ScrollView>
+        <BottomBar />
+    </View>
   );
 };
 
