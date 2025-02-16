@@ -5,7 +5,7 @@ import { ref, onValue } from "firebase/database";
 import { database } from "../../firebaseConfig";
 import { router } from "expo-router";
 import { colors } from "../../src/styles/styles";
-import BottomBar from "../components/BottomBar"
+import BottomBar from "../components/UserBottomBar"
 import Spinner from "../components/Spinner";
 
 const BinList = () => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import NotificationModal from "../modals/NotificationModal";
-import BottomBar from "../components/BottomBar";
+import BottomBar from "../components/UserBottomBar";
 import { FontAwesome } from '@expo/vector-icons';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import MapView, { Marker } from "react-native-maps";

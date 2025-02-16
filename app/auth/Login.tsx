@@ -2,7 +2,8 @@
 import React, { useState } from "react";
 import { View, TextInput, Alert, Text, TouchableOpacity } from "react-native";
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 import { router } from "expo-router";
 import Toast from 'react-native-toast-message';
 import { globalStyles, colors } from '../../src/styles/styles';
@@ -18,15 +19,27 @@ const LoginScreen = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userId = userCredential.user.uid;
-      if (userId === "adminUserId") {
-        router.replace("/admin/AdminHome");
-      } else {
-        Toast.show({
-                  type: 'success',
-                  text1: 'User Login Successful!',
-                  text2: 'Navigating to Homescreen...',
+
+      const userDocRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userRole = userDoc.data().role;
+
+        if (userRole === "admin") {
+          router.replace("/admin/BinManagement");
+        } else if (userRole === "user") {
+          Toast.show({
+            type: 'success',
+            text1: 'User Login Successful!',
+            text2: 'Navigating to Homescreen...',
           });
-        router.replace("/user/BinList");
+          router.replace("/user/BinList");
+        } else {
+          Alert.alert("Error", "Unknown user role.");
+        }
+      } else {
+        Alert.alert("Error", "User document not found.");
       }
     } catch (error) {
       Toast.show({
@@ -35,7 +48,7 @@ const LoginScreen = () => {
         text2: 'Try again',
       });
       Alert.alert("Login Failed", (error as Error).message);
-    }finally {
+    } finally {
       setIsLoading(false);
     }
   };

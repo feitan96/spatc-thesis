@@ -66,4 +66,8 @@ export const globalStyles = StyleSheet.create({
       },
     }),
   },
+  text: {
+    fontSize: 16,
+    color: colors.primary,
+  },
 });
