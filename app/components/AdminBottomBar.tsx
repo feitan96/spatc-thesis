@@ -10,9 +10,9 @@ const BottomBar = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.icon}
-        onPress={() => router.push("/admin/Analytics")}
+        onPress={() => router.push("/admin/UserManagement")}
       >
-        <FontAwesome name="bar-chart" size={24} color={colors.primary} />
+        <FontAwesome name="users" size={24} color={colors.primary} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -21,12 +21,12 @@ const BottomBar = () => {
       >
         <FontAwesome name="trash" size={24} color={colors.primary} />
       </TouchableOpacity>
-
+      
       <TouchableOpacity
         style={styles.icon}
-        onPress={() => router.push("/admin/UserManagement")}
+        onPress={() => router.push("/admin/Analytics")}
       >
-        <FontAwesome name="trash" size={24} color={colors.primary} />
+        <FontAwesome name="bar-chart" size={24} color={colors.primary} />
       </TouchableOpacity>
 
       <TouchableOpacity
