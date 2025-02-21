@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { ref, onValue } from "firebase/database";
 import { database, db } from "../../firebaseConfig";
 import { useLocalSearchParams } from "expo-router";
@@ -26,7 +26,7 @@ const BinData = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const API_KEY = "d1b379e89fe87076140d9462009828b2";
-  const WORLD_TIDES_API_KEY = "2f783ec9-ed24-4340-b503-7208bcd9b282";
+  const WORLD_TIDES_API_KEY = "490af8cc-8cb4-4c81-a717-be6b6c718762";
   
   const [binData, setBinData] = useState({
     distance: null,
@@ -49,15 +49,14 @@ const BinData = () => {
     wind: { speed: number };
   }
 
-  // interface TideData {
-  //   currentTide: number;
-  //   nextHighTide: string;
-  //   nextLowTide: string;
-  // }
+  interface TideData {
+    currentTide: number;
+    nextHighTide: string;
+    nextLowTide: string;
+  }
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
-
-  // const [tideData, setTideData] = useState<TideData | null>(null);
+  const [tideData, setTideData] = useState<TideData | null>(null);
 
   // bin data
   useEffect(() => {
@@ -205,31 +204,30 @@ const BinData = () => {
   }, [binData.gps.latitude, binData.gps.longitude]);
 
   //fetch tide data
-  // useEffect(() => {
-  //   const fetchTideData = async () => {
-  //     if (binData.gps.latitude && binData.gps.longitude) {
-  //       try {
-  //         const url = `https://www.worldtides.info/api/v2?heights&lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&key=${WORLD_TIDES_API_KEY}`;
-  //         console.log("Fetching tide data from URL: ", url);
-  //         const response = await axios.get(url);
-  //         const tides = response.data.heights;
-  //         const currentTide = tides[0]?.height;
-  //         const nextHighTide = tides.find((tide: any) => tide.type === "high")?.dt;
-  //         const nextLowTide = tides.find((tide: any) => tide.type === "low")?.dt;
+    const fetchTideData = async () => {
+      if (binData.gps.latitude && binData.gps.longitude) {
+        setIsLoading(true);
+        try {
+          const url = `https://www.worldtides.info/api/v2?heights&lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&key=${WORLD_TIDES_API_KEY}`;
+          console.log("Fetching tide data from URL: ", url);
+          const response = await axios.get(url);
+          const tides = response.data.heights;
+          const currentTide = tides[0]?.height;
+          const nextHighTide = tides.find((tide: any) => tide.type === "high")?.dt;
+          const nextLowTide = tides.find((tide: any) => tide.type === "low")?.dt;
   
-  //         setTideData({
-  //           currentTide,
-  //           nextHighTide: nextHighTide ? new Date(nextHighTide * 1000).toLocaleTimeString() : "N/A",
-  //           nextLowTide: nextLowTide ? new Date(nextLowTide * 1000).toLocaleTimeString() : "N/A",
-  //         });
-  //       } catch (error) {
-  //         console.error("Error fetching tide data: ", error);
-  //       }
-  //     }
-  //   };
-  
-  //   fetchTideData();
-  // }, [binData.gps.latitude, binData.gps.longitude]);
+          setTideData({
+            currentTide,
+            nextHighTide: nextHighTide ? new Date(nextHighTide * 1000).toLocaleTimeString() : "N/A",
+            nextLowTide: nextLowTide ? new Date(nextLowTide * 1000).toLocaleTimeString() : "N/A",
+          });
+        } catch (error) {
+          console.error("Error fetching tide data: ", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
 
   if (isLoading) {
     return <Spinner />;
@@ -250,7 +248,11 @@ const BinData = () => {
           gps={binData.gps}
         />
 
-        <WeatherSection weather={weather} />
+        <WeatherSection weather={weather} tideData={tideData} />
+
+        <TouchableOpacity style={styles.fetchButton} onPress={fetchTideData}>
+          <Text style={styles.fetchButtonText}>Fetch Tide Data</Text>
+        </TouchableOpacity>
 
         <MapSection
           latitude={binData.gps.latitude}
@@ -274,6 +276,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 16,
+  },
+  fetchButton: {
+    backgroundColor: colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  fetchButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

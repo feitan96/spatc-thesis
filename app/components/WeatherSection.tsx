@@ -8,9 +8,14 @@ interface WeatherSectionProps {
     main: { temp: number; humidity: number };
     wind: { speed: number };
   } | null;
+  tideData: {
+    currentTide: number;
+    nextHighTide: string;
+    nextLowTide: string;
+  } | null;
 }
 
-const WeatherSection: React.FC<WeatherSectionProps> = ({ weather }) => {
+const WeatherSection: React.FC<WeatherSectionProps> = ({ weather, tideData }) => {
   if (!weather) return null;
 
   return (
@@ -20,6 +25,14 @@ const WeatherSection: React.FC<WeatherSectionProps> = ({ weather }) => {
       <Text style={styles.dataText}>Temperature: {weather.main.temp}°C</Text>
       <Text style={styles.dataText}>Humidity: {weather.main.humidity}%</Text>
       <Text style={styles.dataText}>Wind Speed: {weather.wind.speed} m/s</Text>
+
+      {tideData && (
+        <>
+          <Text style={styles.dataText}>Current Tide: {tideData.currentTide} m</Text>
+          {/* <Text style={styles.dataText}>Next High Tide: {tideData.nextHighTide}</Text>
+          <Text style={styles.dataText}>Next Low Tide: {tideData.nextLowTide}</Text> */}
+        </>
+      )}
     </View>
   );
 };

@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { colors } from "../../src/styles/styles";
 import BottomBar from "../components/AdminBottomBar";
 import Spinner from "../components/Spinner";
-import FullScreenMap from "../components/FullScreenMap"; // Import the new component
+import FullScreenMap from "../components/FullScreenMap";
 
 const BinManagement = () => {
   const [bins, setBins] = useState<string[]>([]);
