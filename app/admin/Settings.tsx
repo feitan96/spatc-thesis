@@ -12,7 +12,7 @@ import {
   Platform,
 } from "react-native"
 import { FontAwesome } from "@expo/vector-icons"
-import BottomBar from "../components/UserBottomBar"
+import AdminBottomBar from "../components/AdminBottomBar"
 import { colors, globalStyles } from "../../src/styles/styles"
 import { auth, db } from "../../firebaseConfig"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
@@ -160,7 +160,7 @@ const SettingsScreen = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      <BottomBar />
+      <AdminBottomBar />
       <Toast />
     </KeyboardAvoidingView>
   )

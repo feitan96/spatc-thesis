@@ -1,7 +1,7 @@
 // /app/user/Analytics.tsx
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import BottomBar from "../components/BottomBar";
+import BottomBar from "../components/UserBottomBar";
 import { colors } from "../../src/styles/styles";
 
 const AnalyticsScreen = () => {

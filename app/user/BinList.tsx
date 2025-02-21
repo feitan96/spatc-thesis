@@ -5,7 +5,7 @@ import { ref, onValue } from "firebase/database";
 import { database } from "../../firebaseConfig";
 import { router } from "expo-router";
 import { colors } from "../../src/styles/styles";
-import BottomBar from "../components/BottomBar"
+import BottomBar from "../components/UserBottomBar"
 import Spinner from "../components/Spinner";
 
 const BinList = () => {
@@ -34,7 +34,7 @@ const BinList = () => {
   }, []);
 
   const handleBinPress = (binName: string) => {
-    router.push({ pathname: "/user/UserHome", params: { binName } });
+    router.push({ pathname: "/user/BinData", params: { binName } });
   };
 
   if (isLoading) {

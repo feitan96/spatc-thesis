@@ -1,20 +1,21 @@
 import React, { useEffect, useState, useRef } from "react";
-import NotificationModal from "../modals/NotificationModal";
-import BottomBar from "../components/BottomBar";
-import { FontAwesome } from '@expo/vector-icons';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { View, ScrollView, StyleSheet } from "react-native";
 import { ref, onValue } from "firebase/database";
 import { database, db } from "../../firebaseConfig";
-import { useLocalSearchParams  } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import { collection, addDoc, getDocs } from "firebase/firestore";
-import { format, set } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
-import { colors } from "../../src/styles/styles"
+import { format, toZonedTime } from "date-fns-tz";
+import { colors } from "../../src/styles/styles";
 import Spinner from "../components/Spinner";
+import Header from "../components/Header";
+import BinDataSection from "../components/BinDataSection";
+import WeatherSection from "../components/WeatherSection";
+import MapSection from "../components/MapSection";
+import NotificationModal from "../modals/NotificationModal";
+import BottomBar from "../components/UserBottomBar";
 
-const UserHomeScreen = () => {
+const BinData = () => {
   const { binName } = useLocalSearchParams<{ binName: string }>();
   const [trashLevel, setTrashLevel] = useState(0);
   const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
@@ -36,8 +37,6 @@ const UserHomeScreen = () => {
     },
   });
 
-  const mapRef = useRef<MapView>(null);
-
   interface Notification {
     trashLevel: number;
     datetime: string;
@@ -50,15 +49,17 @@ const UserHomeScreen = () => {
     wind: { speed: number };
   }
 
-  interface TideData {
-    currentTide: number;
-    nextHighTide: string;
-    nextLowTide: string;
-  }
+  // interface TideData {
+  //   currentTide: number;
+  //   nextHighTide: string;
+  //   nextLowTide: string;
+  // }
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [tideData, setTideData] = useState<TideData | null>(null);
 
+  // const [tideData, setTideData] = useState<TideData | null>(null);
+
+  // bin data
   useEffect(() => {
     if (binName) {
       const binRef = ref(database, binName);
@@ -88,6 +89,7 @@ const UserHomeScreen = () => {
     }
   }, [binName]);
 
+  // Calculate trash level percentage
   useEffect(() => {
     // Calculate trash level percentage
     const calculateTrashLevel = (distance: number): number => {
@@ -107,6 +109,7 @@ const UserHomeScreen = () => {
     }
   }, [binData.distance]);
 
+  // Validate trash level and add notification
   useEffect(() => {
     if (isValidating) {
       const timer = setTimeout(async () => {
@@ -145,6 +148,7 @@ const UserHomeScreen = () => {
     }
   }, [isValidating, binData.distance, trashLevel]);
 
+  //fetch notifications
   useEffect(() => {
     const fetchNotifications = async () => {
 
@@ -177,7 +181,8 @@ const UserHomeScreen = () => {
       fetchNotifications(); 
     }
   }, [binName]); 
-  
+
+  //weather
   useEffect(() => {
     const fetchWeather = async () => {
       if (binData.gps.latitude && binData.gps.longitude) {
@@ -199,6 +204,7 @@ const UserHomeScreen = () => {
     fetchWeather();
   }, [binData.gps.latitude, binData.gps.longitude]);
 
+  //fetch tide data
   // useEffect(() => {
   //   const fetchTideData = async () => {
   //     if (binData.gps.latitude && binData.gps.longitude) {
@@ -225,22 +231,6 @@ const UserHomeScreen = () => {
   //   fetchTideData();
   // }, [binData.gps.latitude, binData.gps.longitude]);
 
-  const handleOpenModal = () => {
-    setIsModalVisible(true);
-    setHasNewNotifications(false); // Mark notifications as read
-  };
-
-  const handleFocus = () => {
-    if (mapRef.current && binData.gps.latitude && binData.gps.longitude) {
-      mapRef.current.animateToRegion({
-        latitude: binData.gps.latitude,
-        longitude: binData.gps.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
-    }
-  };
-
   if (isLoading) {
     return <Spinner />;
   }
@@ -248,65 +238,25 @@ const UserHomeScreen = () => {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{binName}</Text>
-          <View style={styles.iconContainer}>
-            <TouchableOpacity onPress={handleOpenModal} style={styles.notificationBell}>
-              <FontAwesome name="bell" size={24} color={colors.primary} />
-              {hasNewNotifications && <View style={styles.notificationDot} />}
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Header
+          title={binName || "Unknown"}
+          onNotificationPress={() => setIsModalVisible(true)}
+          hasNewNotifications={hasNewNotifications}
+        />
 
-        <View style={styles.dataSection}>
-          <Text style={styles.dataText}>Distance: {binData.distance} cm</Text>
-          <Text style={styles.dataText}>Validated Trash Level: {validatedTrashLevel}%</Text>
-          <Text style={styles.dataText}>Altitude: {binData.gps.altitude}</Text>
-          <Text style={styles.dataText}>Latitude: {binData.gps.latitude}</Text>
-          <Text style={styles.dataText}>Longitude: {binData.gps.longitude}</Text>
+        <BinDataSection
+          distance={binData.distance}
+          validatedTrashLevel={validatedTrashLevel}
+          gps={binData.gps}
+        />
 
-          {/* {isValidating && <Text style={styles.validationText}>Validating trash level...</Text>} */}
-        </View>
+        <WeatherSection weather={weather} />
 
-        {weather && (
-          <View style={styles.weatherSection}>
-            <Text style={styles.sectionTitle}>Weather Information</Text>
-            <Text style={styles.dataText}>Weather: {weather.weather[0].description}</Text>
-            <Text style={styles.dataText}>Temperature: {weather.main.temp}°C</Text>
-            <Text style={styles.dataText}>Humidity: {weather.main.humidity}%</Text>
-            <Text style={styles.dataText}>Wind Speed: {weather.wind.speed} m/s</Text>
-          </View>
-        )}
-
-        {binData.gps.latitude && binData.gps.longitude && (
-          <View style={styles.mapSection}>
-          <View style={styles.mapHeader}>
-            <Text style={styles.sectionTitle}>Bin Location</Text>
-            <TouchableOpacity onPress={handleFocus} style={styles.focusIcon}>
-              <FontAwesome name="crosshairs" size={24} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={{
-              latitude: binData.gps.latitude,
-              longitude: binData.gps.longitude,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-          >
-            <Marker
-              coordinate={{
-                latitude: binData.gps.latitude,
-                longitude: binData.gps.longitude,
-              }}
-              title={`${binName || "Unknown"}`}
-              description="Real-time location"
-            />
-          </MapView>
-        </View>
-        )}
+        <MapSection
+          latitude={binData.gps.latitude}
+          longitude={binData.gps.longitude}
+          binName={binName || "Unknown"}
+        />
 
         <NotificationModal
           visible={isModalVisible}
@@ -315,9 +265,9 @@ const UserHomeScreen = () => {
         />
       </ScrollView>
       <BottomBar />
-  </View>
-  )
-}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -325,101 +275,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 16,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: colors.primary,
-  },
-  dataSection: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  weatherSection: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  mapSection: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  mapHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  dataText: {
-    fontSize: 16,
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  validationText: {
-    fontSize: 16,
-    color: colors.secondary,
-    marginTop: 8,
-    fontStyle: "italic",
-  },
-  map: {
-    width: "100%",
-    height: 300,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  notificationBell: {
-    padding: 8,
-  },
-  notificationDot: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'red',
-  },
-  logoutButton: {
-    backgroundColor: colors.secondary,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  logoutButtonText: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  iconContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  icon: {
-    padding: 8,
-    marginRight: 8,
-  },
-  focusIcon: {
-    padding: 8,
-  },
-})
+});
 
-export default UserHomeScreen
+export default BinData;
