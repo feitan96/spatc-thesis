@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ref, onValue } from "firebase/database";
 import { database, db } from "../../firebaseConfig";
 import { useLocalSearchParams } from "expo-router";
 import axios from "axios";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
 import { format, toZonedTime } from "date-fns-tz";
 import { colors } from "../../src/styles/styles";
 import Spinner from "../components/Spinner";
@@ -229,6 +230,51 @@ const BinData = () => {
       }
     };
 
+  // Automatically post trash level when binName changes
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const postTrashLevel = async () => {
+      try {
+        // Check if 30 minutes have passed since the last post
+        const lastPostKey = `lastPost_${binName}`;
+        const lastPostTimestamp = await AsyncStorage.getItem(lastPostKey);
+        const currentTime = new Date().getTime();
+
+        if (lastPostTimestamp && currentTime - Number(lastPostTimestamp) < 1 * 60 * 1000) {
+          return; // Skip posting if cooldown is active
+        }
+
+        // Post to Firestore
+        await addDoc(collection(db, "trashLevels"), {
+          bin: binName,
+          trashLevel: validatedTrashLevel,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        // Update the last post timestamp
+        await AsyncStorage.setItem(lastPostKey, currentTime.toString());
+      } catch (error) {
+        console.error("Error posting trash level: ", error);
+      }
+    };
+
+    // Set a 10-second delay before posting
+    if (binName && validatedTrashLevel !== null) {
+      timeoutId = setTimeout(() => {
+        postTrashLevel();
+      }, 10000); // 10 seconds
+    }
+
+    // Clear the timeout if the component unmounts
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [binName, validatedTrashLevel]);
+
   if (isLoading) {
     return <Spinner />;
   }
@@ -285,6 +331,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   fetchButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  postButton: {
+    backgroundColor: colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  postButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: "bold",
