@@ -17,6 +17,7 @@ import NotificationModal from "../modals/NotificationModal";
 import AdminBottomBar from "../components/AdminBottomBar";
 import UserBottomBar from "../components/UserBottomBar";
 import { useAuth } from "../auth/AuthContext";
+import TrashLevelChart from "../components/TrashLevelChart"
 
 const BinDetails = () => {
   const { binName } = useLocalSearchParams<{ binName: string }>();
@@ -310,6 +311,8 @@ const BinDetails = () => {
           longitude={binData.gps.longitude}
           binName={binName || "Unknown"}
         />
+
+        <TrashLevelChart binName={binName} />
 
         <NotificationModal
           visible={isModalVisible}
