@@ -12,7 +12,9 @@ import {
   Platform,
 } from "react-native"
 import { FontAwesome } from "@expo/vector-icons"
-import BottomBar from "../components/UserBottomBar"
+import { useAuth } from "../auth/AuthContext";
+import AdminBottomBar from "../components/AdminBottomBar"
+import UserBottomBar from "../components/UserBottomBar"
 import { colors, globalStyles } from "../../src/styles/styles"
 import { auth, db } from "../../firebaseConfig"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
@@ -31,6 +33,8 @@ const SettingsScreen = () => {
   })
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false);
+
+    const { userRole } = useAuth();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -160,7 +164,8 @@ const SettingsScreen = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      <BottomBar />
+      {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
+
       <Toast />
     </KeyboardAvoidingView>
   )

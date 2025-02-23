@@ -14,9 +14,11 @@ import BinDataSection from "../components/BinDataSection";
 import WeatherSection from "../components/WeatherSection";
 import MapSection from "../components/MapSection";
 import NotificationModal from "../modals/NotificationModal";
-import BottomBar from "../components/UserBottomBar";
+import AdminBottomBar from "../components/AdminBottomBar";
+import UserBottomBar from "../components/UserBottomBar";
+import { useAuth } from "../auth/AuthContext";
 
-const BinData = () => {
+const BinDetails = () => {
   const { binName } = useLocalSearchParams<{ binName: string }>();
   const [trashLevel, setTrashLevel] = useState(0);
   const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
@@ -58,6 +60,9 @@ const BinData = () => {
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [tideData, setTideData] = useState<TideData | null>(null);
+
+  const { userRole } = useAuth();
+
 
   // bin data
   useEffect(() => {
@@ -312,7 +317,9 @@ const BinData = () => {
           notifications={notifications}
         />
       </ScrollView>
-      <BottomBar />
+
+      {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
+
     </View>
   );
 };
@@ -349,4 +356,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BinData;
+export default BinDetails;

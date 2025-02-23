@@ -4,15 +4,19 @@ import { ref, onValue } from "firebase/database";
 import { database } from "../../firebaseConfig";
 import { router } from "expo-router";
 import { colors } from "../../src/styles/styles";
-import BottomBar from "../components/AdminBottomBar";
 import Spinner from "../components/Spinner";
 import FullScreenMap from "../components/FullScreenMap";
+import { useAuth } from "../auth/AuthContext";
+import AdminBottomBar from "../components/AdminBottomBar"
+import UserBottomBar from "../components/UserBottomBar"
 
 const BinManagement = () => {
   const [bins, setBins] = useState<string[]>([]);
   const [binData, setBinData] = useState<{ [key: string]: any }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isMapVisible, setIsMapVisible] = useState(false);
+
+  const { userRole } = useAuth();
 
   useEffect(() => {
     const binsRef = ref(database);
@@ -32,11 +36,11 @@ const BinManagement = () => {
   }, []);
 
   const handleBinPress = (binName: string) => {
-    router.push({ pathname: "/admin/BinData", params: { binName } });
+    router.push({ pathname: "/shared/BinDetails", params: { binName } });
   };
 
   const handleViewMap = () => {
-    setIsMapVisible(true); // Open the full-screen map
+    setIsMapVisible(true);
   };
 
   if (isLoading) {
@@ -64,7 +68,7 @@ const BinManagement = () => {
         <FullScreenMap binData={binData} onClose={() => setIsMapVisible(false)} />
       </Modal>
 
-      <BottomBar />
+      {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
     </View>
   );
 };

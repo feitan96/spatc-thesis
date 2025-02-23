@@ -1,4 +1,3 @@
-// /app/components/BottomBar.tsx
 import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
@@ -17,7 +16,7 @@ const BottomBar = () => {
 
       <TouchableOpacity
         style={styles.icon}
-        onPress={() => router.push("/admin/BinManagement")}
+        onPress={() => router.push("/shared/BinList")}
       >
         <FontAwesome name="trash" size={24} color={colors.primary} />
       </TouchableOpacity>
@@ -31,7 +30,7 @@ const BottomBar = () => {
 
       <TouchableOpacity
         style={styles.icon}
-        onPress={() => router.push("/admin/Settings")}
+        onPress={() => router.push("/shared/Settings")}
       >
         <FontAwesome name="cog" size={24} color={colors.primary} />
       </TouchableOpacity>

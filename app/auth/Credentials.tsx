@@ -5,6 +5,7 @@ import { db, auth } from "../../firebaseConfig";
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
 import { globalStyles, colors } from '../../src/styles/styles';
+import Spinner from "../components/Spinner";
 
 const CredentialsScreen = () => {
   const [firstName, setFirstName] = useState("");
@@ -12,6 +13,7 @@ const CredentialsScreen = () => {
   const [contactNumber, setContactNumber] = useState("");
   const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -29,6 +31,7 @@ const CredentialsScreen = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -57,11 +60,17 @@ const CredentialsScreen = () => {
         text1: 'Account Creation Successful!',
         text2: 'Navigating to Homescreen...',
       });
-      router.replace("/user/BinList");
+      router.replace("/shared/BinList");
     } catch (error) {
       Alert.alert("Error", (error as Error).message);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return <Spinner />;
+  }
 
   return (
     <View style={globalStyles.container}>

@@ -9,6 +9,7 @@ export default function AuthLayout() {
         <Stack.Screen name="Login" options={{ title: "Login", headerShown: false}} />
         <Stack.Screen name="Register" options={{ title: "Register", headerShown: false }} />
         <Stack.Screen name="Credentials" options={{ title: "Credentials", headerShown: false }} />
+        <Stack.Screen name="AuthContext" options={{ title: "AuthContext", headerShown: false }} />
       </Stack>
       <Toast />
     </>

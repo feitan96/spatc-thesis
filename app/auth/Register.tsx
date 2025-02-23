@@ -6,12 +6,15 @@ import { auth, db } from "../../firebaseConfig";
 import { router } from "expo-router";
 import Toast from 'react-native-toast-message';
 import { globalStyles, colors } from '../../src/styles/styles';
+import Spinner from "../components/Spinner";
 
 const RegisterScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
+    setIsLoading(true);
     try {
       const q = query(collection(db, "users"), where("email", "==", email));
       const querySnapshot = await getDocs(q);
@@ -37,8 +40,14 @@ const RegisterScreen = () => {
       router.replace("/auth/Credentials");
     } catch (error) {
       Alert.alert("Registration Failed", (error as Error).message);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return <Spinner />;
+  }
 
   return (
     <View style={globalStyles.container}>

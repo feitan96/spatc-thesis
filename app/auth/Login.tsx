@@ -8,11 +8,14 @@ import { router } from "expo-router";
 import Toast from 'react-native-toast-message';
 import { globalStyles, colors } from '../../src/styles/styles';
 import Spinner from "../components/Spinner";
+import { useAuth } from "./AuthContext";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const { setUserRole } = useAuth();
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -25,16 +28,18 @@ const LoginScreen = () => {
 
       if (userDoc.exists()) {
         const userRole = userDoc.data().role;
+        
+        setUserRole(userRole);
 
         if (userRole === "admin") {
-          router.replace("/admin/BinManagement");
+          router.replace("/shared/BinList");
         } else if (userRole === "user") {
           Toast.show({
             type: 'success',
             text1: 'User Login Successful!',
             text2: 'Navigating to Homescreen...',
           });
-          router.replace("/user/BinList");
+          router.replace("/shared/BinList");
         } else {
           Alert.alert("Error", "Unknown user role.");
         }

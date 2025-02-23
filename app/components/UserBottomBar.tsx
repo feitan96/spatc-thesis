@@ -17,14 +17,14 @@ const BottomBar = () => {
 
       <TouchableOpacity
         style={styles.icon}
-        onPress={() => router.push("/user/BinList")}
+        onPress={() => router.push("/shared/BinList")}
       >
         <FontAwesome name="trash" size={24} color={colors.primary} />
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.icon}
-        onPress={() => router.push("/user/Settings")}
+        onPress={() => router.push("/shared/Settings")}
       >
         <FontAwesome name="cog" size={24} color={colors.primary} />
       </TouchableOpacity>
