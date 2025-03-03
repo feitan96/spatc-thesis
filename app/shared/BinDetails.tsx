@@ -130,21 +130,21 @@ const BinDetails = () => {
   
             const notification = { trashLevel, datetime: formattedDatetime, bin: binName };
             
-            setIsLoading(true)
-            try {
-              await addDoc(collection(db, "notifications"), {
-                notificationId: `${formattedDatetime}-${trashLevel}`,
-                trashLevel,
-                datetime: formattedDatetime,
-                bin: binName,
-              });
-              setHasNewNotifications(true);
-              setNotifications((prev) => [...prev, notification]);
-            } catch (error) {
-              console.error("Error adding notification: ", error);
-            } finally {
-              setIsLoading(false);
-            }
+            // setIsLoading(true)
+            // try {
+            //   await addDoc(collection(db, "notifications"), {
+            //     notificationId: `${formattedDatetime}-${trashLevel}`,
+            //     trashLevel,
+            //     datetime: formattedDatetime,
+            //     bin: binName,
+            //   });
+            //   setHasNewNotifications(true);
+            //   setNotifications((prev) => [...prev, notification]);
+            // } catch (error) {
+            //   console.error("Error adding notification: ", error);
+            // } finally {
+            //   setIsLoading(false);
+            // }
           }
         }
         setIsValidating(false);
