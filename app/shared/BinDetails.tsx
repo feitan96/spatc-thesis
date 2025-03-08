@@ -301,10 +301,10 @@ const BinDetails = () => {
         />
 
         <WeatherSection weather={weather} tideData={tideData} />
-
+{/* 
         <TouchableOpacity style={styles.fetchButton} onPress={fetchTideData}>
           <Text style={styles.fetchButtonText}>Fetch Tide Data</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <MapSection
           latitude={binData.gps.latitude}
