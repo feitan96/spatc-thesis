@@ -77,7 +77,7 @@ const RegisterScreen = () => {
   }
 
   return (
-    <View style={globalStyles.container}>
+    <View style={globalStyles.centeredContainer}>
       <Text style={globalStyles.title}>Register</Text>
 
       {/* Email Input */}

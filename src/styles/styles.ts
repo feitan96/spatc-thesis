@@ -13,8 +13,16 @@ export const colors = {
 export const globalStyles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 16,
+    backgroundColor: colors.background, // Non-layout style
+  },
+  contentContainer: {
+    padding: 16, // Layout style (moved from container)
+    justifyContent: 'flex-start', // Layout style (moved from container)
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center', // Center content vertically
+    padding: 16, // Add padding
     backgroundColor: colors.background,
   },
   title: {
@@ -53,7 +61,8 @@ export const globalStyles = StyleSheet.create({
   link: {
     color: colors.secondary,
     fontWeight: 'bold',
-  },shadow: {
+  },
+  shadow: {
     ...Platform.select({
       ios: {
         shadowColor: colors.primary,

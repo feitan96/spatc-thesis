@@ -92,7 +92,7 @@ const LoginScreen = () => {
   }
 
   return (
-    <View style={globalStyles.container}>
+    <View style={globalStyles.centeredContainer}>
       <Text style={globalStyles.title}>Login</Text>
       <TextInput
         style={globalStyles.input}

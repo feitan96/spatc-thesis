@@ -73,7 +73,7 @@ const CredentialsScreen = () => {
   }
 
   return (
-    <View style={globalStyles.container}>
+    <View style={globalStyles.centeredContainer}>
       <Text style={globalStyles.title}>Enter Your Credentials</Text>
       <TextInput
         style={globalStyles.input}
