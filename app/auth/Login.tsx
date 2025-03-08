@@ -15,7 +15,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { setUserRole } = useAuth();
+  const { setUserRole, setFirstName, setLastName } = useAuth();
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -28,8 +28,12 @@ const LoginScreen = () => {
 
       if (userDoc.exists()) {
         const userRole = userDoc.data().role;
-        
+        const firstName = userDoc.data().firstName;
+        const lastName = userDoc.data().lastName;
+
         setUserRole(userRole);
+        setFirstName(firstName);
+        setLastName(lastName);
 
         if (userRole === "admin") {
           router.replace("/shared/BinList");

@@ -19,13 +19,11 @@ import AdminBottomBar from "../components/AdminBottomBar";
 import UserBottomBar from "../components/UserBottomBar";
 import { useAuth } from "../auth/AuthContext";
 import TrashLevelChart from "../components/TrashLevelChart";
-import FloatingTrashBubble from "../components/FloatingTrashBubble"; // Import the new component
-import TrashLevelBubble from "../components/TrashLevelBubble";
+import FloatingTrashBubble from "../components/FloatingTrashBubble"; // Import the updated component
 
 const BinDetails = () => {
   const { binName } = useLocalSearchParams<{ binName: string }>();
   const [trashLevel, setTrashLevel] = useState(0);
-  const [validatedTrashLevel, setValidatedTrashLevel] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -122,8 +120,6 @@ const BinDetails = () => {
     if (isValidating) {
       const timer = setTimeout(async () => {
         if (binData.distance !== null && binData.distance <= 100) {
-          setValidatedTrashLevel(trashLevel);
-  
           if ([90, 95, 100].includes(trashLevel)) {
             const now = new Date();
             const timeZone = 'Asia/Manila';
@@ -256,7 +252,7 @@ const BinDetails = () => {
         // Post to Firestore
         await addDoc(collection(db, "trashLevels"), {
           bin: binName,
-          trashLevel: validatedTrashLevel,
+          trashLevel: trashLevel,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -269,7 +265,7 @@ const BinDetails = () => {
     };
 
     // Set a 10-second delay before posting
-    if (binName && validatedTrashLevel !== null) {
+    if (binName && trashLevel !== null) {
       timeoutId = setTimeout(() => {
         postTrashLevel();
       }, 10000); // 10 seconds
@@ -281,7 +277,7 @@ const BinDetails = () => {
         clearTimeout(timeoutId);
       }
     };
-  }, [binName, validatedTrashLevel]);
+  }, [binName, trashLevel]);
 
   if (isLoading) {
     return <Spinner />;
@@ -289,40 +285,40 @@ const BinDetails = () => {
 
   return (
     <View style={{ flex: 1 }}>
-    <ScrollView style={styles.container}>
-      <Header
-        title={binName || "Unknown"}
-        onNotificationPress={() => setIsModalVisible(true)}
-        hasNewNotifications={hasNewNotifications}
-      />
+      <ScrollView style={styles.container}>
+        <Header
+          title={binName || "Unknown"}
+          onNotificationPress={() => setIsModalVisible(true)}
+          hasNewNotifications={hasNewNotifications}
+        />
 
-      <BinDataSection
-        distance={binData.distance}
-        gps={binData.gps}
-      />
+        <BinDataSection
+          distance={binData.distance}
+          gps={binData.gps}
+        />
 
-      <WeatherSection weather={weather} tideData={tideData} />
+        <WeatherSection weather={weather} tideData={tideData} />
 
-      <MapSection
-        latitude={binData.gps.latitude}
-        longitude={binData.gps.longitude}
-        binName={binName || "Unknown"}
-      />
+        <MapSection
+          latitude={binData.gps.latitude}
+          longitude={binData.gps.longitude}
+          binName={binName || "Unknown"}
+        />
 
-      <TrashLevelChart binName={binName} />
+        <TrashLevelChart binName={binName} />
 
-      <NotificationModal
-        visible={isModalVisible}
-        onClose={() => setIsModalVisible(false)}
-        notifications={notifications}
-      />
-    </ScrollView>
+        <NotificationModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          notifications={notifications}
+        />
+      </ScrollView>
 
-    {/* Add the TrashLevelBubble here, outside of the ScrollView */}
-    <TrashLevelBubble trashLevel={validatedTrashLevel} />
+      <FloatingTrashBubble binName={binName} /> {/* Pass binName to the component */}
 
-    {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
-  </View>
+      {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
+
+    </View>
   );
 };
 

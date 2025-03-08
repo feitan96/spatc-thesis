@@ -60,7 +60,7 @@ const CredentialsScreen = () => {
         text1: 'Account Creation Successful!',
         text2: 'Navigating to Homescreen...',
       });
-      router.replace("/shared/BinList");
+      router.replace("/auth/Login");
     } catch (error) {
       Alert.alert("Error", (error as Error).message);
     } finally {
