@@ -1,5 +1,6 @@
+// shared/BinDetails.tsx
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ref, onValue } from "firebase/database";
 import { database, db } from "../../firebaseConfig";
@@ -17,7 +18,9 @@ import NotificationModal from "../modals/NotificationModal";
 import AdminBottomBar from "../components/AdminBottomBar";
 import UserBottomBar from "../components/UserBottomBar";
 import { useAuth } from "../auth/AuthContext";
-import TrashLevelChart from "../components/TrashLevelChart"
+import TrashLevelChart from "../components/TrashLevelChart";
+import FloatingTrashBubble from "../components/FloatingTrashBubble"; // Import the new component
+import TrashLevelBubble from "../components/TrashLevelBubble";
 
 const BinDetails = () => {
   const { binName } = useLocalSearchParams<{ binName: string }>();
@@ -64,7 +67,6 @@ const BinDetails = () => {
 
   const { userRole } = useAuth();
 
-
   // bin data
   useEffect(() => {
     if (binName) {
@@ -99,11 +101,11 @@ const BinDetails = () => {
   useEffect(() => {
     // Calculate trash level percentage
     const calculateTrashLevel = (distance: number): number => {
-      const maxDistance = 100; // 100cm = 0% (empty)
+      const maxDistance = 60; // 60cm = 0% (empty)
       const minDistance = 2; // 0cm = 100% (full)
 
       if (distance >= maxDistance) return 0; // Bin is empty
-      if (distance <= minDistance) return 100; // Bin is full
+      if (distance <= minDistance) return 60; // Bin is full
 
       // Linear interpolation to calculate percentage
       return Math.round(((maxDistance - distance) / (maxDistance - minDistance)) * 100);
@@ -287,43 +289,40 @@ const BinDetails = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
-        <Header
-          title={binName || "Unknown"}
-          onNotificationPress={() => setIsModalVisible(true)}
-          hasNewNotifications={hasNewNotifications}
-        />
+    <ScrollView style={styles.container}>
+      <Header
+        title={binName || "Unknown"}
+        onNotificationPress={() => setIsModalVisible(true)}
+        hasNewNotifications={hasNewNotifications}
+      />
 
-        <BinDataSection
-          distance={binData.distance}
-          validatedTrashLevel={validatedTrashLevel}
-          gps={binData.gps}
-        />
+      <BinDataSection
+        distance={binData.distance}
+        gps={binData.gps}
+      />
 
-        <WeatherSection weather={weather} tideData={tideData} />
-{/* 
-        <TouchableOpacity style={styles.fetchButton} onPress={fetchTideData}>
-          <Text style={styles.fetchButtonText}>Fetch Tide Data</Text>
-        </TouchableOpacity> */}
+      <WeatherSection weather={weather} tideData={tideData} />
 
-        <MapSection
-          latitude={binData.gps.latitude}
-          longitude={binData.gps.longitude}
-          binName={binName || "Unknown"}
-        />
+      <MapSection
+        latitude={binData.gps.latitude}
+        longitude={binData.gps.longitude}
+        binName={binName || "Unknown"}
+      />
 
-        <TrashLevelChart binName={binName} />
+      <TrashLevelChart binName={binName} />
 
-        <NotificationModal
-          visible={isModalVisible}
-          onClose={() => setIsModalVisible(false)}
-          notifications={notifications}
-        />
-      </ScrollView>
+      <NotificationModal
+        visible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        notifications={notifications}
+      />
+    </ScrollView>
 
-      {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
+    {/* Add the TrashLevelBubble here, outside of the ScrollView */}
+    <TrashLevelBubble trashLevel={validatedTrashLevel} />
 
-    </View>
+    {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
+  </View>
   );
 };
 

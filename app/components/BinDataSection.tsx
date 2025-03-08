@@ -4,7 +4,6 @@ import { colors } from "../../src/styles/styles";
 
 interface BinDataSectionProps {
   distance: number | null;
-  validatedTrashLevel: number;
   gps: {
     altitude: number | null;
     latitude: number | null;
@@ -12,11 +11,10 @@ interface BinDataSectionProps {
   };
 }
 
-const BinDataSection: React.FC<BinDataSectionProps> = ({ distance, validatedTrashLevel, gps }) => {
+const BinDataSection: React.FC<BinDataSectionProps> = ({ distance, gps }) => {
   return (
     <View style={styles.dataSection}>
       <Text style={styles.dataText}>Distance: {distance} cm</Text>
-      <Text style={styles.dataText}>Validated Trash Level: {validatedTrashLevel}%</Text>
       <Text style={styles.dataText}>Altitude: {gps.altitude}</Text>
       <Text style={styles.dataText}>Latitude: {gps.latitude}</Text>
       <Text style={styles.dataText}>Longitude: {gps.longitude}</Text>
