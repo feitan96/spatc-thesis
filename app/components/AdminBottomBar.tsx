@@ -5,6 +5,11 @@ import BaseBottomBar from "./navigation/BaseBottomBar"
 const AdminBottomBar = () => {
   const tabs = [
     {
+      icon: <FontAwesome5 name="home" size={22} color={colors.primary} />,
+      label: "Dashboard",
+      path: "/admin/Dashboard",
+    },
+    {
       icon: <FontAwesome5 name="users" size={22} color={colors.primary} />,
       label: "Users",
       path: "/admin/UserManagement",
