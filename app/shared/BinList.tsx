@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { colors } from "../../src/styles/styles";
 import Spinner from "../components/Spinner";
 import FullScreenMap from "../components/FullScreenMap";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../../src/auth/AuthContext";
 import AdminBottomBar from "../components/AdminBottomBar"
 import UserBottomBar from "../components/UserBottomBar"
 import { collection, query, where, getDocs } from "firebase/firestore";

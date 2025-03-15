@@ -4,8 +4,8 @@ import BottomBar from "../components/AdminBottomBar"
 import Spinner from "../components/Spinner"
 import UserList from "../components/user-management/UserList"
 import BinAssignmentManager from "../components/user-management/BinAssignmentManager"
-import { useBinAssignments } from "../hooks/useBinAssignments"
-import { useUsers } from "../hooks/useUsers"
+import { useBinAssignments } from "../../src/hooks/useBinAssignments"
+import { useUsers } from "../../src/hooks/useUsers"
 
 const UserManagement = () => {
   const { users, isLoadingUsers, refreshUsers } = useUsers()

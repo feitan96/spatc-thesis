@@ -13,7 +13,7 @@ import { ref, onValue } from "firebase/database";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { database, db } from "../../firebaseConfig";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../../src/auth/AuthContext";
 
 // You may want to update these colors in your styles file
 const colors = {

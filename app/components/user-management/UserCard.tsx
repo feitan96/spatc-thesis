@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native"
-import type { UserCardProps } from "../../types/userManagement"
+import type { UserCardProps } from "../../../src/types/userManagement"
 import { colors } from "../../../src/styles/styles"
-import { useUsers } from "../../hooks/useUsers"
+import { useUsers } from "../../../src/hooks/useUsers"
 
 const UserCard = ({ user, onUserDeleted }: UserCardProps) => {
   const [isModalVisible, setIsModalVisible] = useState(false)

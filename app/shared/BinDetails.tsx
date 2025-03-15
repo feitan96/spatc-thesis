@@ -17,7 +17,7 @@ import MapSection from "../components/MapSection";
 import NotificationModal from "../modals/NotificationModal";
 import AdminBottomBar from "../components/AdminBottomBar";
 import UserBottomBar from "../components/UserBottomBar";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../../src/auth/AuthContext";
 import TrashLevelChart from "../components/TrashLevelChart";
 import FloatingTrashBubble from "../components/FloatingTrashBubble"; // Import the updated component
 

@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import Toast from "react-native-toast-message";
-import { AuthProvider } from "./auth/AuthContext";
+import { AuthProvider } from "../src/auth/AuthContext";
 
 export default function RootLayout() {
   return (

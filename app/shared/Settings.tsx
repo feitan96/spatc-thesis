@@ -12,7 +12,7 @@ import {
   Platform,
 } from "react-native"
 import { FontAwesome } from "@expo/vector-icons"
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../../src/auth/AuthContext";
 import AdminBottomBar from "../components/AdminBottomBar"
 import UserBottomBar from "../components/UserBottomBar"
 import { colors, globalStyles } from "../../src/styles/styles"

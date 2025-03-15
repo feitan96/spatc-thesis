@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from "react-native"
-import type { UserListProps } from "../../types/userManagement"
+import type { UserListProps } from "../../../src/types/userManagement"
 import { colors } from "../../../src/styles/styles"
 import UserCard from "./UserCard"
 

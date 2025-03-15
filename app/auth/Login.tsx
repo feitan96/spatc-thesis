@@ -8,7 +8,7 @@ import { router } from "expo-router";
 import Toast from 'react-native-toast-message';
 import { globalStyles, colors } from '../../src/styles/styles';
 import Spinner from "../components/Spinner";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../../src/auth/AuthContext";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");

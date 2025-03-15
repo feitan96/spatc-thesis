@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
 import { Picker } from "@react-native-picker/picker"
-import type { BinAssignmentManagerProps, User } from "../../types/userManagement"
+import type { BinAssignmentManagerProps, User } from "../../../src/types/userManagement"
 import { colors } from "../../../src/styles/styles"
 
 const BinAssignmentManager = ({ bins, users, onAssignUser, onUnassignUser }: BinAssignmentManagerProps) => {

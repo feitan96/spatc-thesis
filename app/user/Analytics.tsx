@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../../src/auth/AuthContext";
 import { colors } from "../../src/styles/styles";
 import BottomBar from "../components/UserBottomBar";
 import { BarChart } from "react-native-chart-kit";
