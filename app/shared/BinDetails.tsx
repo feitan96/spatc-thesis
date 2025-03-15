@@ -1,38 +1,58 @@
-// shared/BinDetails.tsx
-import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ref, onValue } from "firebase/database";
-import { database, db } from "../../firebaseConfig";
-import { useLocalSearchParams } from "expo-router";
-import axios from "axios";
-import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
-import { format, toZonedTime } from "date-fns-tz";
-import { colors } from "../../src/styles/styles";
-import Spinner from "../components/Spinner";
-import Header from "../components/Header";
-import BinDataSection from "../components/BinDataSection";
-import WeatherSection from "../components/WeatherSection";
-import MapSection from "../components/MapSection";
-import NotificationModal from "../modals/NotificationModal";
-import AdminBottomBar from "../components/AdminBottomBar";
-import UserBottomBar from "../components/UserBottomBar";
-import { useAuth } from "../../src/auth/AuthContext";
-import TrashLevelChart from "../components/TrashLevelChart";
-import FloatingTrashBubble from "../components/FloatingTrashBubble"; // Import the updated component
+"use client"
+
+import { useEffect, useState } from "react"
+import { View, ScrollView, StyleSheet, StatusBar, RefreshControl } from "react-native"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { ref, onValue } from "firebase/database"
+import { database, db } from "../../firebaseConfig"
+import { useLocalSearchParams } from "expo-router"
+import axios from "axios"
+import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore"
+import { format, toZonedTime } from "date-fns-tz"
+import { colors } from "../../src/styles/styles"
+import Spinner from "../components/Spinner"
+import Header from "../components/Header"
+import BinDataSection from "../components/BinDataSection"
+import WeatherSection from "../components/WeatherSection"
+import MapSection from "../components/MapSection"
+import NotificationModal from "../modals/NotificationModal"
+import AdminBottomBar from "../components/AdminBottomBar"
+import UserBottomBar from "../components/UserBottomBar"
+import { useAuth } from "../../src/auth/AuthContext"
+import TrashLevelChart from "../components/TrashLevelChart"
+import FloatingTrashBubble from "../components/FloatingTrashBubble"
+
+interface Notification {
+  trashLevel: number
+  datetime: string
+  bin: string
+}
+
+interface WeatherData {
+  weather: { description: string; icon: string }[]
+  main: { temp: number; humidity: number }
+  wind: { speed: number }
+}
+
+interface TideData {
+  currentTide: number
+  nextHighTide: string
+  nextLowTide: string
+}
 
 const BinDetails = () => {
-  const { binName } = useLocalSearchParams<{ binName: string }>();
-  const [trashLevel, setTrashLevel] = useState(0);
-  const [isValidating, setIsValidating] = useState(false);
-  const [hasNewNotifications, setHasNewNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const API_KEY = "d1b379e89fe87076140d9462009828b2";
-  const WORLD_TIDES_API_KEY = "490af8cc-8cb4-4c81-a717-be6b6c718762";
-  
+  const { binName } = useLocalSearchParams<{ binName: string }>()
+  const [trashLevel, setTrashLevel] = useState(0)
+  const [isValidating, setIsValidating] = useState(false)
+  const [hasNewNotifications, setHasNewNotifications] = useState(false)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const API_KEY = "d1b379e89fe87076140d9462009828b2"
+  const WORLD_TIDES_API_KEY = "490af8cc-8cb4-4c81-a717-be6b6c718762"
+
   const [binData, setBinData] = useState({
     distance: null,
     gps: {
@@ -40,80 +60,54 @@ const BinDetails = () => {
       latitude: null,
       longitude: null,
     },
-  });
+  })
 
-  interface Notification {
-    trashLevel: number;
-    datetime: string;
-    bin: string;
-  }
+  const [weather, setWeather] = useState<WeatherData | null>(null)
+  const [tideData, setTideData] = useState<TideData | null>(null)
 
-  interface WeatherData {
-    weather: { description: string }[];
-    main: { temp: number; humidity: number };
-    wind: { speed: number };
-  }
+  const { userRole } = useAuth()
 
-  interface TideData {
-    currentTide: number;
-    nextHighTide: string;
-    nextLowTide: string;
-  }
-
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [tideData, setTideData] = useState<TideData | null>(null);
-
-  const { userRole } = useAuth();
-
-  // bin data
+  // Fetch bin data
   useEffect(() => {
     if (binName) {
-      const binRef = ref(database, binName);
-
-      // Listen for changes in the selected bin node
+      const binRef = ref(database, binName)
       const unsubscribe = onValue(binRef, (snapshot) => {
-        const data = snapshot.val();
+        const data = snapshot.val()
         if (data) {
-          const newDistance = data["distance(cm)"];
-
-          // Update the bin data
+          const newDistance = data["distance(cm)"]
           setBinData({
             distance: newDistance,
             gps: data.gps,
-          });
+          })
 
-          // Start validation if the distance is within 100cm (full)
-          if (newDistance <= 100) { // Adjust threshold if needed
-            setIsValidating(true);
+          if (newDistance <= 100) {
+            setIsValidating(true)
           } else {
-            setIsValidating(false);
+            setIsValidating(false)
           }
         }
-      });
+        setIsLoading(false)
+      })
 
-      return () => unsubscribe();
+      return () => unsubscribe()
     }
-  }, [binName]);
+  }, [binName])
 
   // Calculate trash level percentage
   useEffect(() => {
-    // Calculate trash level percentage
     const calculateTrashLevel = (distance: number): number => {
-      const maxDistance = 60; // 60cm = 0% (empty)
-      const minDistance = 2; // 0cm = 100% (full)
-
-      if (distance >= maxDistance) return 0; // Bin is empty
-      if (distance <= minDistance) return 60; // Bin is full
-
-      // Linear interpolation to calculate percentage
-      return Math.round(((maxDistance - distance) / (maxDistance - minDistance)) * 100);
-    };
+      const maxDistance = 60
+      const minDistance = 2
+      if (distance >= maxDistance) return 0
+      if (distance <= minDistance) return 60
+      return Math.round(((maxDistance - distance) / (maxDistance - minDistance)) * 100)
+    }
 
     if (binData.distance !== null) {
-      const level = calculateTrashLevel(binData.distance);
-      setTrashLevel(level);
+      const level = calculateTrashLevel(binData.distance)
+      setTrashLevel(level)
     }
-  }, [binData.distance]);
+  }, [binData.distance])
 
   // Validate trash level and add notification
   useEffect(() => {
@@ -121,237 +115,204 @@ const BinDetails = () => {
       const timer = setTimeout(async () => {
         if (binData.distance !== null && binData.distance <= 100) {
           if ([90, 95, 100].includes(trashLevel)) {
-            const now = new Date();
-            const timeZone = 'Asia/Manila';
-            const zonedDate = toZonedTime(now, timeZone);
-            const formattedDatetime = format(zonedDate, 'yyyy-MM-dd hh:mm:ss aa');
-  
-            const notification = { trashLevel, datetime: formattedDatetime, bin: binName };
-            
-            // setIsLoading(true)
-            // try {
-            //   await addDoc(collection(db, "notifications"), {
-            //     notificationId: `${formattedDatetime}-${trashLevel}`,
-            //     trashLevel,
-            //     datetime: formattedDatetime,
-            //     bin: binName,
-            //   });
-            //   setHasNewNotifications(true);
-            //   setNotifications((prev) => [...prev, notification]);
-            // } catch (error) {
-            //   console.error("Error adding notification: ", error);
-            // } finally {
-            //   setIsLoading(false);
-            // }
+            const now = new Date()
+            const timeZone = "Asia/Manila"
+            const zonedDate = toZonedTime(now, timeZone)
+            const formattedDatetime = format(zonedDate, "yyyy-MM-dd hh:mm:ss aa")
+            const notification = { trashLevel, datetime: formattedDatetime, bin: binName }
+            setHasNewNotifications(true)
+            setNotifications((prev) => [...prev, notification])
           }
         }
-        setIsValidating(false);
-      }, 1000);
-  
-      return () => clearTimeout(timer);
-    }
-  }, [isValidating, binData.distance, trashLevel]);
+        setIsValidating(false)
+      }, 1000)
 
-  //fetch notifications
+      return () => clearTimeout(timer)
+    }
+  }, [isValidating, binData.distance, trashLevel])
+
+  // Fetch notifications
   useEffect(() => {
     const fetchNotifications = async () => {
+      if (!binName) return
 
-      setIsLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, "notifications"));
+        const querySnapshot = await getDocs(collection(db, "notifications"))
         const fetchedNotifications = querySnapshot.docs
           .map((doc) => {
-            const data = doc.data();
+            const data = doc.data()
             return {
               trashLevel: data.trashLevel,
               datetime: data.datetime,
-              bin: data.bin, // Include the bin field
-            };
+              bin: data.bin,
+            }
           })
-          .filter((notification) => notification.bin === binName); // Filter by binName
-  
-        // Sort notifications by datetime in descending order
-        fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
-  
-        setNotifications(fetchedNotifications);
-      } catch (error) {
-        console.error("Error fetching notifications: ", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    if (binName) {
-      fetchNotifications(); 
-    }
-  }, [binName]); 
+          .filter((notification) => notification.bin === binName)
 
-  //weather
+        fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())
+        setNotifications(fetchedNotifications)
+      } catch (error) {
+        console.error("Error fetching notifications: ", error)
+      }
+    }
+
+    fetchNotifications()
+  }, [binName])
+
+  // Fetch weather data
   useEffect(() => {
     const fetchWeather = async () => {
       if (binData.gps.latitude && binData.gps.longitude) {
-
-        setIsLoading(true);
         try {
           const response = await axios.get(
-            `https://api.openweathermap.org/data/2.5/weather?lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&appid=${API_KEY}&units=metric`
-          );
-          setWeather(response.data);
+            `https://api.openweathermap.org/data/2.5/weather?lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&appid=${API_KEY}&units=metric`,
+          )
+          setWeather(response.data)
         } catch (error) {
-          console.error("Error fetching weather data: ", error);
-        } finally {
-          setIsLoading(false);
+          console.error("Error fetching weather data: ", error)
         }
       }
-    };
+    }
 
-    fetchWeather();
-  }, [binData.gps.latitude, binData.gps.longitude]);
+    fetchWeather()
+  }, [binData.gps.latitude, binData.gps.longitude])
 
-  //fetch tide data
-    const fetchTideData = async () => {
-      if (binData.gps.latitude && binData.gps.longitude) {
-        setIsLoading(true);
-        try {
-          const url = `https://www.worldtides.info/api/v2?heights&lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&key=${WORLD_TIDES_API_KEY}`;
-          console.log("Fetching tide data from URL: ", url);
-          const response = await axios.get(url);
-          const tides = response.data.heights;
-          const currentTide = tides[0]?.height;
-          const nextHighTide = tides.find((tide: any) => tide.type === "high")?.dt;
-          const nextLowTide = tides.find((tide: any) => tide.type === "low")?.dt;
-  
-          setTideData({
-            currentTide,
-            nextHighTide: nextHighTide ? new Date(nextHighTide * 1000).toLocaleTimeString() : "N/A",
-            nextLowTide: nextLowTide ? new Date(nextLowTide * 1000).toLocaleTimeString() : "N/A",
-          });
-        } catch (error) {
-          console.error("Error fetching tide data: ", error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-  // Automatically post trash level when binName changes
+  // Post trash level to Firestore
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout
 
     const postTrashLevel = async () => {
       try {
-        // Check if 30 minutes have passed since the last post
-        const lastPostKey = `lastPost_${binName}`;
-        const lastPostTimestamp = await AsyncStorage.getItem(lastPostKey);
-        const currentTime = new Date().getTime();
+        const lastPostKey = `lastPost_${binName}`
+        const lastPostTimestamp = await AsyncStorage.getItem(lastPostKey)
+        const currentTime = new Date().getTime()
 
         if (lastPostTimestamp && currentTime - Number(lastPostTimestamp) < 1 * 60 * 1000) {
-          return; // Skip posting if cooldown is active
+          return
         }
 
-        // Post to Firestore
         await addDoc(collection(db, "trashLevels"), {
           bin: binName,
           trashLevel: trashLevel,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        });
+        })
 
-        // Update the last post timestamp
-        await AsyncStorage.setItem(lastPostKey, currentTime.toString());
+        await AsyncStorage.setItem(lastPostKey, currentTime.toString())
       } catch (error) {
-        console.error("Error posting trash level: ", error);
+        console.error("Error posting trash level: ", error)
       }
-    };
-
-    // Set a 10-second delay before posting
-    if (binName && trashLevel !== null) {
-      timeoutId = setTimeout(() => {
-        postTrashLevel();
-      }, 10000); // 10 seconds
     }
 
-    // Clear the timeout if the component unmounts
+    if (binName && trashLevel !== null) {
+      timeoutId = setTimeout(() => {
+        postTrashLevel()
+      }, 10000)
+    }
+
     return () => {
       if (timeoutId) {
-        clearTimeout(timeoutId);
+        clearTimeout(timeoutId)
       }
-    };
-  }, [binName, trashLevel]);
+    }
+  }, [binName, trashLevel])
+
+  // Handle refresh
+  const onRefresh = async () => {
+    setRefreshing(true)
+
+    // Fetch weather data
+    if (binData.gps.latitude && binData.gps.longitude) {
+      try {
+        const response = await axios.get(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${binData.gps.latitude}&lon=${binData.gps.longitude}&appid=${API_KEY}&units=metric`,
+        )
+        setWeather(response.data)
+      } catch (error) {
+        console.error("Error fetching weather data: ", error)
+      }
+    }
+
+    // Fetch notifications
+    try {
+      const querySnapshot = await getDocs(collection(db, "notifications"))
+      const fetchedNotifications = querySnapshot.docs
+        .map((doc) => {
+          const data = doc.data()
+          return {
+            trashLevel: data.trashLevel,
+            datetime: data.datetime,
+            bin: data.bin,
+          }
+        })
+        .filter((notification) => notification.bin === binName)
+
+      fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())
+      setNotifications(fetchedNotifications)
+    } catch (error) {
+      console.error("Error fetching notifications: ", error)
+    }
+
+    setRefreshing(false)
+  }
 
   if (isLoading) {
-    return <Spinner />;
+    return <Spinner />
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
-        <Header
-          title={binName || "Unknown"}
-          onNotificationPress={() => setIsModalVisible(true)}
-          hasNewNotifications={hasNewNotifications}
-        />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
-        <BinDataSection
-          distance={binData.distance}
-          gps={binData.gps}
-        />
+      <Header
+        title={binName || "Unknown"}
+        onNotificationPress={() => setIsModalVisible(true)}
+        hasNewNotifications={hasNewNotifications}
+      />
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <BinDataSection distance={binData.distance} gps={binData.gps} trashLevel={trashLevel} />
 
         <WeatherSection weather={weather} tideData={tideData} />
 
-        <MapSection
-          latitude={binData.gps.latitude}
-          longitude={binData.gps.longitude}
-          binName={binName || "Unknown"}
-        />
-
         <TrashLevelChart binName={binName} />
 
-        <NotificationModal
-          visible={isModalVisible}
-          onClose={() => setIsModalVisible(false)}
-          notifications={notifications}
-        />
+        <MapSection latitude={binData.gps.latitude} longitude={binData.gps.longitude} binName={binName || "Unknown"} />
       </ScrollView>
 
-      <FloatingTrashBubble binName={binName} /> {/* Pass binName to the component */}
+      <FloatingTrashBubble binName={binName} />
+
+      <NotificationModal
+        visible={isModalVisible}
+        onClose={() => {
+          setIsModalVisible(false)
+          setHasNewNotifications(false)
+        }}
+        notifications={notifications}
+      />
 
       {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
-
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 16,
+    paddingBottom: 16,
   },
-  fetchButton: {
-    backgroundColor: colors.primary,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  fetchButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  postButton: {
-    backgroundColor: colors.primary,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  postButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-});
+})
 
-export default BinDetails;
+export default BinDetails
+
