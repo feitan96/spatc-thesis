@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
 import { ref, onValue } from "firebase/database";
-import { database } from "../../firebaseConfig";
+import { database, db } from "../../firebaseConfig";
 import { router } from "expo-router";
 import { colors } from "../../src/styles/styles";
 import Spinner from "../components/Spinner";
@@ -9,6 +9,7 @@ import FullScreenMap from "../components/FullScreenMap";
 import { useAuth } from "../auth/AuthContext";
 import AdminBottomBar from "../components/AdminBottomBar"
 import UserBottomBar from "../components/UserBottomBar"
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 const BinManagement = () => {
   const [bins, setBins] = useState<string[]>([]);
@@ -16,24 +17,45 @@ const BinManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isMapVisible, setIsMapVisible] = useState(false);
 
-  const { userRole } = useAuth();
+  const { userRole, userId } = useAuth();
 
   useEffect(() => {
-    const binsRef = ref(database);
+    const fetchBins = async () => {
+      setIsLoading(true);
+      const binsRef = ref(database);
+      const unsubscribe = onValue(binsRef, async (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const binNames = Object.keys(data);
+          if (userRole === "admin") {
+            setBins(binNames);
+            setBinData(data);
+          } else if (userRole === "user" && userId) {
+            const assignedBins = await getAssignedBins(userId);
+            const filteredBins = binNames.filter(bin => assignedBins.includes(bin));
+            setBins(filteredBins);
+            setBinData(data);
+          }
+        }
+        setIsLoading(false);
+      });
 
-    setIsLoading(true);
-    const unsubscribe = onValue(binsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const binNames = Object.keys(data);
-        setBins(binNames);
-        setBinData(data); // Store all bin data
-      }
-      setIsLoading(false);
+      return () => unsubscribe();
+    };
+
+    fetchBins();
+  }, [userRole, userId]);
+
+  const getAssignedBins = async (userId: string) => {
+    const binAssignmentsRef = collection(db, "binAssignments");
+    const q = query(binAssignmentsRef, where("assignee", "array-contains", userId));
+    const querySnapshot = await getDocs(q);
+    const assignedBins: string[] = [];
+    querySnapshot.forEach((doc) => {
+      assignedBins.push(doc.data().bin);
     });
-
-    return () => unsubscribe();
-  }, []);
+    return assignedBins;
+  };
 
   const handleBinPress = (binName: string) => {
     router.push({ pathname: "/shared/BinDetails", params: { binName } });
@@ -52,9 +74,11 @@ const BinManagement = () => {
       <ScrollView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Select a Bin</Text>
-          <TouchableOpacity onPress={handleViewMap} style={styles.viewMapButton}>
-            <Text style={styles.viewMapButtonText}>View Map</Text>
-          </TouchableOpacity>
+          {userRole === "admin" && (
+            <TouchableOpacity onPress={handleViewMap} style={styles.viewMapButton}>
+              <Text style={styles.viewMapButtonText}>View Map</Text>
+            </TouchableOpacity>
+          )}
         </View>
         {bins.map((bin) => (
           <TouchableOpacity key={bin} style={styles.binItem} onPress={() => handleBinPress(bin)}>
