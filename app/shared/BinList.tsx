@@ -1,91 +1,154 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
-import { ref, onValue } from "firebase/database";
-import { database, db } from "../../firebaseConfig";
-import { router } from "expo-router";
-import { colors } from "../../src/styles/styles";
-import Spinner from "../components/Spinner";
-import FullScreenMap from "../components/FullScreenMap";
-import { useAuth } from "../../src/auth/AuthContext";
+"use client"
+
+import { useEffect, useState } from "react"
+import { View, Text, StyleSheet, ScrollView, Modal } from "react-native"
+import { ref, onValue } from "firebase/database"
+import { database } from "../../firebaseConfig"
+import { router } from "expo-router"
+import { colors } from "../../src/styles/styles"
+import Spinner from "../components/Spinner"
+import FullScreenMap from "../components/FullScreenMap"
+import { useAuth } from "../../src/auth/AuthContext"
 import AdminBottomBar from "../components/AdminBottomBar"
 import UserBottomBar from "../components/UserBottomBar"
-import { collection, query, where, getDocs } from "firebase/firestore";
+import BinCard from "../components/bin-management/BinCard"
+import BinActionDialog from "../components/bin-management/BinActionDialog"
+import BinAssignmentModal from "../components/bin-management/BinAssignmentModal"
+import { useBinAssignments } from "../../src/hooks/useBinAssignments"
+import { TouchableOpacity } from "react-native"
+import { MapPin } from "lucide-react-native"
 
-const BinManagement = () => {
-  const [bins, setBins] = useState<string[]>([]);
-  const [binData, setBinData] = useState<{ [key: string]: any }>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMapVisible, setIsMapVisible] = useState(false);
+interface BinData {
+  [key: string]: any
+}
 
-  const { userRole, userId } = useAuth();
+const BinList = () => {
+  const [bins, setBins] = useState<string[]>([])
+  const [binData, setBinData] = useState<BinData>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [isMapVisible, setIsMapVisible] = useState(false)
+  const [selectedBin, setSelectedBin] = useState<string | null>(null)
+  const [isActionDialogVisible, setIsActionDialogVisible] = useState(false)
+  const [isAssignmentModalVisible, setIsAssignmentModalVisible] = useState(false)
+
+  const { userRole, userId } = useAuth()
+  const { bins: binAssignments, isLoadingBins } = useBinAssignments()
 
   useEffect(() => {
     const fetchBins = async () => {
-      setIsLoading(true);
-      const binsRef = ref(database);
+      setIsLoading(true)
+      const binsRef = ref(database)
+
       const unsubscribe = onValue(binsRef, async (snapshot) => {
-        const data = snapshot.val();
+        const data = snapshot.val()
         if (data) {
-          const binNames = Object.keys(data);
+          const binNames = Object.keys(data)
+
           if (userRole === "admin") {
-            setBins(binNames);
-            setBinData(data);
+            setBins(binNames)
+            setBinData(data)
           } else if (userRole === "user" && userId) {
-            const assignedBins = await getAssignedBins(userId);
-            const filteredBins = binNames.filter(bin => assignedBins.includes(bin));
-            setBins(filteredBins);
-            setBinData(data);
+            // Filter bins based on user assignments
+            const assignedBins = await getAssignedBins()
+            const filteredBins = binNames.filter((bin) => assignedBins.includes(bin))
+            setBins(filteredBins)
+            setBinData(data)
           }
         }
-        setIsLoading(false);
-      });
+        setIsLoading(false)
+      })
 
-      return () => unsubscribe();
-    };
+      return () => unsubscribe()
+    }
 
-    fetchBins();
-  }, [userRole, userId]);
+    fetchBins()
+  }, [userRole, userId, binAssignments])
 
-  const getAssignedBins = async (userId: string) => {
-    const binAssignmentsRef = collection(db, "binAssignments");
-    const q = query(binAssignmentsRef, where("assignee", "array-contains", userId));
-    const querySnapshot = await getDocs(q);
-    const assignedBins: string[] = [];
-    querySnapshot.forEach((doc) => {
-      assignedBins.push(doc.data().bin);
-    });
-    return assignedBins;
-  };
+  const getAssignedBins = async () => {
+    if (!userId) return []
+
+    // Find bins assigned to this user from binAssignments
+    const assignedBins = binAssignments
+      .filter((assignment) => assignment.assignee.includes(userId))
+      .map((assignment) => assignment.bin)
+
+    return assignedBins
+  }
 
   const handleBinPress = (binName: string) => {
-    router.push({ pathname: "/shared/BinDetails", params: { binName } });
-  };
+    setSelectedBin(binName)
+    setIsActionDialogVisible(true)
+  }
+
+  const handleViewDetails = () => {
+    if (selectedBin) {
+      setIsActionDialogVisible(false)
+      router.push({ pathname: "/shared/BinDetails", params: { binName: selectedBin } })
+    }
+  }
+
+  const handleManageUsers = () => {
+    setIsActionDialogVisible(false)
+    setIsAssignmentModalVisible(true)
+  }
 
   const handleViewMap = () => {
-    setIsMapVisible(true);
-  };
+    setIsMapVisible(true)
+  }
 
-  if (isLoading) {
-    return <Spinner />;
+  const handleCloseAssignmentModal = () => {
+    setIsAssignmentModalVisible(false)
+    setSelectedBin(null)
+  }
+
+  if (isLoading || isLoadingBins) {
+    return <Spinner />
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollContainer}>
         <View style={styles.header}>
-          <Text style={styles.title}>Select a Bin</Text>
+          <Text style={styles.title}>Bin Management</Text>
           {userRole === "admin" && (
             <TouchableOpacity onPress={handleViewMap} style={styles.viewMapButton}>
+              <MapPin size={18} color={colors.white} />
               <Text style={styles.viewMapButtonText}>View Map</Text>
             </TouchableOpacity>
           )}
         </View>
-        {bins.map((bin) => (
-          <TouchableOpacity key={bin} style={styles.binItem} onPress={() => handleBinPress(bin)}>
-            <Text style={styles.binText}>{bin}</Text>
-          </TouchableOpacity>
-        ))}
+
+        {bins.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No bins available</Text>
+          </View>
+        ) : (
+          <View style={styles.binGrid}>
+            {bins.map((bin) => (
+              <BinCard key={bin} binName={bin} binData={binData[bin]} onPress={() => handleBinPress(bin)} />
+            ))}
+          </View>
+        )}
       </ScrollView>
+
+      {/* Action Dialog */}
+      <BinActionDialog
+        visible={isActionDialogVisible}
+        binName={selectedBin}
+        onClose={() => setIsActionDialogVisible(false)}
+        onViewDetails={handleViewDetails}
+        onManageUsers={handleManageUsers}
+        showManageOption={userRole === "admin"}
+      />
+
+      {/* Bin Assignment Modal */}
+      {userRole === "admin" && (
+        <BinAssignmentModal
+          visible={isAssignmentModalVisible}
+          binName={selectedBin}
+          onClose={handleCloseAssignmentModal}
+        />
+      )}
 
       {/* Full-screen map modal */}
       <Modal visible={isMapVisible} transparent={true} animationType="slide">
@@ -94,13 +157,16 @@ const BinManagement = () => {
 
       {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollContainer: {
+    flex: 1,
     padding: 16,
   },
   header: {
@@ -114,26 +180,39 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: colors.primary,
   },
-  binItem: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-  },
-  binText: {
-    fontSize: 16,
-    color: colors.primary,
-  },
   viewMapButton: {
     backgroundColor: colors.primary,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   viewMapButtonText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: "500",
   },
-});
+  binGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  emptyState: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: colors.secondary,
+    textAlign: "center",
+  },
+})
 
-export default BinManagement;
+export default BinList
+
