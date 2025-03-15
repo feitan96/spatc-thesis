@@ -6,7 +6,7 @@ import UserCard from "./UserCard"
 const UserList = ({ users, onUserDeleted }: UserListProps) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>User Management</Text>
+      {/* <Text style={styles.sectionTitle}>User Management</Text> */}
 
       {users.length === 0 ? (
         <View style={styles.emptyState}>
@@ -21,7 +21,7 @@ const UserList = ({ users, onUserDeleted }: UserListProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: 8,
   },
   sectionTitle: {
     fontSize: 18,

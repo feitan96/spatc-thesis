@@ -11,12 +11,14 @@ import FullScreenMap from "../components/FullScreenMap"
 import { useAuth } from "../../src/auth/AuthContext"
 import AdminBottomBar from "../components/AdminBottomBar"
 import UserBottomBar from "../components/UserBottomBar"
-import BinCard from "../components/bin-management/BinCard"
 import BinActionDialog from "../components/bin-management/BinActionDialog"
 import BinAssignmentModal from "../components/bin-management/BinAssignmentModal"
 import { useBinAssignments } from "../../src/hooks/useBinAssignments"
 import { TouchableOpacity } from "react-native"
 import { MapPin } from "lucide-react-native"
+
+// Import the new BinCardEnhanced component
+import BinCardEnhanced from "../components/bin-management/BinCardEnhanced"
 
 interface BinData {
   [key: string]: any
@@ -109,7 +111,7 @@ const BinList = () => {
     <View style={styles.container}>
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.header}>
-          <Text style={styles.title}>Bin Management</Text>
+          <Text style={styles.title}>Manage Bins</Text>
           {userRole === "admin" && (
             <TouchableOpacity onPress={handleViewMap} style={styles.viewMapButton}>
               <MapPin size={18} color={colors.white} />
@@ -125,7 +127,7 @@ const BinList = () => {
         ) : (
           <View style={styles.binGrid}>
             {bins.map((bin) => (
-              <BinCard key={bin} binName={bin} binData={binData[bin]} onPress={() => handleBinPress(bin)} />
+              <BinCardEnhanced key={bin} binName={bin} binData={binData[bin]} onPress={() => handleBinPress(bin)} />
             ))}
           </View>
         )}
@@ -195,9 +197,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   binGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    width: "100%",
+    gap: 8,
+    paddingBottom: 20,
   },
   emptyState: {
     backgroundColor: colors.white,

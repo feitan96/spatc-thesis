@@ -1,4 +1,7 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
+"use client"
+
+import { useEffect, useRef } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from "react-native"
 import { colors } from "../../../src/styles/styles"
 import { Trash2 } from "lucide-react-native"
 
@@ -9,37 +12,85 @@ interface BinCardProps {
 }
 
 const BinCard = ({ binName, binData, onPress }: BinCardProps) => {
-  // Calculate fill level percentage if available
-  const fillLevel = binData?.fillLevel ? Math.min(binData.fillLevel, 100) : 0
+  // Get trash level from binData
+  const trashLevel =
+    binData?.trashLevel !== undefined
+      ? Math.min(binData.trashLevel, 100)
+      : binData?.fillLevel !== undefined
+        ? Math.min(binData.fillLevel, 100)
+        : 0
 
-  // Determine status color based on fill level
-  const getStatusColor = () => {
-    if (fillLevel >= 80) return "#e74c3c" // Red for high fill level
-    if (fillLevel >= 50) return "#f39c12" // Orange for medium fill level
-    return "#2ecc71" // Green for low fill level
+  // Animation value for progress bar
+  const progressAnim = useRef(new Animated.Value(0)).current
+
+  // Start animation when component mounts or trashLevel changes
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: trashLevel / 100,
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start()
+  }, [trashLevel])
+
+  // Interpolate colors based on trash level
+  const progressColor = progressAnim.interpolate({
+    inputRange: [0, 0.4, 0.7, 0.9],
+    outputRange: ["#2ecc71", "#3498db", "#f39c12", "#e74c3c"],
+  })
+
+  // Determine status text based on trash level
+  const getStatusText = () => {
+    if (trashLevel >= 80) return "Critical"
+    if (trashLevel >= 60) return "High"
+    if (trashLevel >= 40) return "Medium"
+    if (trashLevel >= 20) return "Low"
+    return "Empty"
   }
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.iconContainer}>
-        <Trash2 size={24} color={colors.primary} />
-      </View>
-      <Text style={styles.binName}>{binName}</Text>
-
-      {binData?.fillLevel !== undefined && (
-        <View style={styles.statusContainer}>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${fillLevel}%`, backgroundColor: getStatusColor() }]} />
-          </View>
-          <Text style={styles.statusText}>{fillLevel}% Full</Text>
+      <View style={styles.header}>
+        <View style={styles.iconContainer}>
+          <Trash2 size={20} color={colors.primary} />
         </View>
-      )}
+        <Text style={styles.binName}>{binName}</Text>
+      </View>
+
+      <View style={styles.progressContainer}>
+        <View style={styles.progressInfo}>
+          <Text style={styles.progressLabel}>Trash Level</Text>
+          <Text style={styles.progressValue}>{Math.round(trashLevel)}%</Text>
+        </View>
+
+        <View style={styles.progressBarContainer}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "100%"],
+                }),
+                backgroundColor: progressColor,
+              },
+            ]}
+          />
+        </View>
+
+        <Text style={[styles.statusText, { color: progressColor }]}>{getStatusText()}</Text>
+      </View>
 
       {binData?.location && (
         <Text style={styles.locationText} numberOfLines={1}>
-          {binData.location.address || "Location available"}
+          📍 {binData.location.address || "Location available"}
         </Text>
       )}
+
+      {/* <Text style={styles.lastUpdatedText}>
+        🕒{" "}
+        {binData?.lastUpdated ? `Updated: ${new Date(binData.lastUpdated).toLocaleTimeString()}` : "Status available"}
+      </Text> */}
     </TouchableOpacity>
   )
 }
@@ -47,52 +98,75 @@ const BinCard = ({ binName, binData, onPress }: BinCardProps) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    width: "48%",
+    width: "100%",
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
   },
   iconContainer: {
     backgroundColor: colors.background,
-    padding: 10,
+    padding: 8,
     borderRadius: 8,
-    alignSelf: "flex-start",
-    marginBottom: 12,
+    marginRight: 12,
   },
   binName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     color: colors.primary,
+  },
+  progressContainer: {
+    marginBottom: 16,
+  },
+  progressInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
-  statusContainer: {
-    marginTop: 8,
+  progressLabel: {
+    fontSize: 14,
+    color: colors.secondary,
+    fontWeight: "500",
   },
-  progressBarBackground: {
-    height: 6,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 3,
+  progressValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  progressBarContainer: {
+    height: 12,
+    backgroundColor: "#f1f1f1",
+    borderRadius: 6,
     overflow: "hidden",
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  progressBarFill: {
+  progressBar: {
     height: "100%",
-    borderRadius: 3,
+    borderRadius: 6,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "right",
+  },
+  locationText: {
+    fontSize: 14,
     color: colors.secondary,
     marginBottom: 8,
   },
-  locationText: {
+  lastUpdatedText: {
     fontSize: 12,
     color: colors.tertiary,
-    marginTop: 4,
   },
 })
 

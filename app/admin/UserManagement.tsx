@@ -3,7 +3,6 @@ import { colors } from "../../src/styles/styles"
 import BottomBar from "../components/AdminBottomBar"
 import Spinner from "../components/Spinner"
 import UserList from "../components/user-management/UserList"
-import BinAssignmentManager from "../components/user-management/BinAssignmentManager"
 import { useBinAssignments } from "../../src/hooks/useBinAssignments"
 import { useUsers } from "../../src/hooks/useUsers"
 
@@ -20,15 +19,6 @@ const UserManagement = () => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollContainer}>
-        {/* Bin Assignment Section */}
-        <BinAssignmentManager
-          bins={bins}
-          users={users}
-          onAssignUser={assignUserToBin}
-          onUnassignUser={unassignUserFromBin}
-        />
-
-        {/* User List Section */}
         <UserList users={users} onUserDeleted={refreshUsers} />
       </ScrollView>
       <BottomBar />
