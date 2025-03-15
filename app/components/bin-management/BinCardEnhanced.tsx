@@ -54,20 +54,18 @@ const BinCardEnhanced = ({ binName, binData, onPress }: BinCardEnhancedProps) =>
 
   // Get gradient colors based on trash level
   const getGradientColors = () => {
-    if (trashLevel >= 80) return ["#e74c3c", "#c0392b"]
-    if (trashLevel >= 60) return ["#f39c12", "#d35400"]
-    if (trashLevel >= 40) return ["#3498db", "#2980b9"]
-    if (trashLevel >= 20) return ["#2ecc71", "#27ae60"]
-    return ["#95a5a6", "#7f8c8d"]
+    if (trashLevel >= 90) return ["#EF4444", "#B91C1C"] // Critical - Red
+    if (trashLevel >= 50) return ["#F59E0B", "#D97706"] // Warning - Amber
+    if (trashLevel > 0) return ["#10B981", "#059669"] // Good - Green
+    return ["#10B981", "#059669"] // Empty - Green
   }
 
   // Determine status text and color based on trash level
   const getStatusInfo = () => {
-    if (trashLevel >= 80) return { text: "Critical", color: "#e74c3c" }
-    if (trashLevel >= 60) return { text: "High", color: "#f39c12" }
-    if (trashLevel >= 40) return { text: "Medium", color: "#3498db" }
-    if (trashLevel >= 20) return { text: "Low", color: "#2ecc71" }
-    return { text: "Empty", color: "#95a5a6" }
+    if (trashLevel >= 90) return { text: "Critical", color: "#EF4444" }
+    if (trashLevel >= 50) return { text: "Warning", color: "#F59E0B" }
+    if (trashLevel >= 0) return { text: "Good", color: "#10B981" }
+    return { text: "Empty", color: "#10B981" }
   }
 
   const statusInfo = getStatusInfo()

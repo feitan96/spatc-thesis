@@ -321,7 +321,7 @@ const FloatingTrashBubble: React.FC<FloatingTrashBubbleProps> = ({ binName }) =>
 const styles = StyleSheet.create({
   bubbleContainer: {
     position: "absolute",
-    bottom: 80,
+    bottom: 20,
     right: 20,
     borderRadius: 50,
     elevation: 8,

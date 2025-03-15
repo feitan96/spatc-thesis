@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   binGrid: {
     width: "100%",
     gap: 8,
-    paddingBottom: 20,
+    paddingBottom: 130,
   },
   emptyState: {
     backgroundColor: colors.white,

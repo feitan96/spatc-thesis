@@ -16,19 +16,26 @@ interface BinDataSectionProps {
 const BinDataSection: React.FC<BinDataSectionProps> = ({ distance, gps, trashLevel }) => {
   // Get color based on trash level
   const getTrashLevelColor = (level: number) => {
-    if (level < 40) return "#10B981" // Green
-    if (level < 70) return "#F59E0B" // Amber
-    return "#EF4444" // Red
+    if (level >= 90) return "#EF4444" // Critical - Red
+    if (level >= 50) return "#F59E0B" // Warning - Amber
+    return "#10B981" // Good - Green
   }
 
   const trashLevelColor = getTrashLevelColor(trashLevel)
+
+  // Get status text based on trash level
+  const getStatusText = (level: number) => {
+    if (level >= 90) return "Critical"
+    if (level >= 50) return "Warning"
+    return "Good"
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Bin Status</Text>
         <View style={[styles.statusBadge, { backgroundColor: trashLevelColor }]}>
-          <Text style={styles.statusText}>{trashLevel < 40 ? "Good" : trashLevel < 70 ? "Warning" : "Critical"}</Text>
+          <Text style={styles.statusText}>{getStatusText(trashLevel)}</Text>
         </View>
       </View>
 

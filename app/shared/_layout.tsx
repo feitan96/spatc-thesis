@@ -5,7 +5,7 @@ export default function UserLayout() {
   return (
     <>
       <Stack>
-        <Stack.Screen name="BinList" options={{ title: "Bin List", headerShown: true}} />
+        <Stack.Screen name="BinList" options={{ title: "Bin List", headerShown: false}} />
         <Stack.Screen name="BinDetails" options={{ title: "Bin Details", headerShown: false}} />
         <Stack.Screen name="Settings" options={{ title: "Settings", headerShown: true}} />
       </Stack>
