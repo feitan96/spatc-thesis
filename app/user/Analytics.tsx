@@ -1,205 +1,516 @@
-// /app/user/Analytics.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
-import { useAuth } from "../../src/auth/AuthContext";
-import { colors } from "../../src/styles/styles";
-import BottomBar from "../components/UserBottomBar";
-import { BarChart } from "react-native-chart-kit";
+"use client"
+
+import { useEffect, useState } from "react"
+import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native"
+import { collection, query, where, getDocs } from "firebase/firestore"
+import { db } from "../../firebaseConfig"
+import { useAuth } from "../../src/auth/AuthContext"
+import { colors, shadows, spacing, borderRadius, trashLevels } from "../../src/styles/styles"
+import EnhancedUserBottomBar from "../components/UserBottomBar"
+import { BarChart } from "react-native-chart-kit"
+import { format, subDays, isToday } from "date-fns"
+import { BarChart3, Calendar, TrendingUp, Droplet } from "lucide-react-native"
+import { LinearGradient } from "expo-linear-gradient"
 
 // Define the type for analytics data
 interface AnalyticsData {
-  allTime: number;
-  lastMonth: number;
-  monthly: { [key: string]: number }; // Explicitly define the type for monthly
-  lastWeek: number;
-  today: number;
+  allTime: number
+  lastMonth: number
+  monthly: { [key: string]: number }
+  lastWeek: number
+  today: number
+}
+
+interface MonthlyData {
+  month: string
+  volume: number
+  isCurrentMonth: boolean
 }
 
 const AnalyticsScreen = () => {
-  const { userId } = useAuth();
+  const { userId } = useAuth()
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     allTime: 0,
     lastMonth: 0,
     monthly: {},
     lastWeek: 0,
     today: 0,
-  });
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [monthlyDataArray, setMonthlyDataArray] = useState<MonthlyData[]>([])
 
   // Fetch analytics data
   useEffect(() => {
     const fetchAnalyticsData = async () => {
-      if (!userId) return;
+      if (!userId) return
 
-      const trashEmptyingRef = collection(db, "trashEmptying");
-      const q = query(trashEmptyingRef, where("userId", "==", userId));
-      const querySnapshot = await getDocs(q);
+      setIsLoading(true)
+      try {
+        const trashEmptyingRef = collection(db, "trashEmptying")
+        const q = query(trashEmptyingRef, where("userId", "==", userId))
+        const querySnapshot = await getDocs(q)
 
-      const data: AnalyticsData = {
-        allTime: 0,
-        lastMonth: 0,
-        monthly: {},
-        lastWeek: 0,
-        today: 0,
-      };
-
-      const now = new Date();
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-      querySnapshot.forEach((doc) => {
-        const entry = doc.data();
-        const emptiedAt = entry.emptiedAt.toDate();
-        const volume = entry.volume;
-
-        // All-Time
-        data.allTime += volume;
-
-        // Last Month
-        if (emptiedAt > oneMonthAgo) {
-          data.lastMonth += volume;
+        const data: AnalyticsData = {
+          allTime: 0,
+          lastMonth: 0,
+          monthly: {},
+          lastWeek: 0,
+          today: 0,
         }
 
-        // Monthly
-        const monthYear = emptiedAt.toLocaleString("default", { month: "short", year: "numeric" });
-        if (!data.monthly[monthYear]) {
-          data.monthly[monthYear] = 0;
-        }
-        data.monthly[monthYear] += volume;
+        const now = new Date()
+        const oneDayAgo = subDays(now, 1)
+        const oneWeekAgo = subDays(now, 7)
+        const oneMonthAgo = subDays(now, 30)
 
-        // Last Week
-        if (emptiedAt > oneWeekAgo) {
-          data.lastWeek += volume;
-        }
+        // Get current month for comparison
+        const currentMonthYear = format(now, "MMM yyyy")
 
-        // Today
-        if (emptiedAt > oneDayAgo) {
-          data.today += volume;
-        }
-      });
+        querySnapshot.forEach((doc) => {
+          const entry = doc.data()
+          const emptiedAt = entry.emptiedAt.toDate()
+          const volume = entry.volume
 
-      setAnalyticsData(data);
-    };
+          // All-Time
+          data.allTime += volume
 
-    fetchAnalyticsData();
-  }, [userId]);
+          // Last Month
+          if (emptiedAt > oneMonthAgo) {
+            data.lastMonth += volume
+          }
+
+          // Monthly
+          const monthYear = format(emptiedAt, "MMM yyyy")
+          if (!data.monthly[monthYear]) {
+            data.monthly[monthYear] = 0
+          }
+          data.monthly[monthYear] += volume
+
+          // Last Week
+          if (emptiedAt > oneWeekAgo) {
+            data.lastWeek += volume
+          }
+
+          // Today
+          if (isToday(emptiedAt)) {
+            data.today += volume
+          }
+        })
+
+        // Process monthly data for chart
+        const monthlyEntries = Object.entries(data.monthly).map(([month, volume]) => ({
+          month,
+          volume,
+          isCurrentMonth: month === currentMonthYear,
+        }))
+
+        // Sort by date (oldest to newest)
+        monthlyEntries.sort((a, b) => {
+          const dateA = new Date(a.month)
+          const dateB = new Date(b.month)
+          return dateA.getTime() - dateB.getTime()
+        })
+
+        setAnalyticsData(data)
+        setMonthlyDataArray(monthlyEntries)
+      } catch (error) {
+        console.error("Error fetching analytics data:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAnalyticsData()
+  }, [userId])
 
   // Prepare data for the bar chart
-  const sortedMonthlyEntries = Object.entries(analyticsData.monthly).sort((a, b) => {
-    const dateA = new Date(a[0]); // Convert monthYear string to Date
-    const dateB = new Date(b[0]); // Convert monthYear string to Date
-    return dateA.getTime() - dateB.getTime(); // Sort in ascending order
-  });
-
-  // Reverse the sorted entries to place the latest month on the right-most side
-  const reversedMonthlyEntries = sortedMonthlyEntries.reverse();
-
-  const barData = {
-    labels: reversedMonthlyEntries.map(([monthYear]) => monthYear), // Reversed months
+  const chartData = {
+    labels: monthlyDataArray.map((item) => item.month),
     datasets: [
       {
-        data: reversedMonthlyEntries.map(([, volume]) => volume), // Reversed volumes
+        data: monthlyDataArray.map((item) => item.volume),
+        colors: monthlyDataArray.map((item) => (item.isCurrentMonth ? () => colors.primary : () => colors.secondary)),
       },
     ],
-  };
-  
+  }
+
+  const screenWidth = Dimensions.get("window").width - 40
+  // For wider charts, use this width based on the number of months
+  const chartWidth = Math.max(screenWidth, monthlyDataArray.length * 100)
+
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.title}>Analytics</Text>
-
-        {/* All-Time */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>All-Time</Text>
-          <Text style={styles.cardValue}>{analyticsData.allTime.toFixed(2)} liters</Text>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Analytics</Text>
         </View>
 
-        {/* Last Month */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Last Month</Text>
-          <Text style={styles.cardValue}>{analyticsData.lastMonth.toFixed(2)} liters</Text>
+        {/* Today's Volume - Highlighted Card */}
+        <View style={styles.todayCard}>
+          <LinearGradient
+            colors={trashLevels.getGradientColors(50)}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.todayCardGradient}
+          >
+            <View style={styles.todayCardContent}>
+              <View style={styles.todayIconContainer}>
+                <Calendar size={24} color={colors.white} />
+              </View>
+              <View style={styles.todayTextContainer}>
+                <Text style={styles.todayLabel}>Today's Collection</Text>
+                <Text style={styles.todayValue}>{analyticsData.today.toFixed(2)} liters</Text>
+              </View>
+            </View>
+          </LinearGradient>
         </View>
 
-        {/* Monthly Bar Chart */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Monthly</Text>
-          <BarChart
-            data={barData}
-            width={Dimensions.get("window").width - 32} // Full width minus padding
-            height={220}
-            yAxisLabel=""
-            yAxisSuffix=" L"
-            chartConfig={{
-              backgroundColor: colors.white,
-              backgroundGradientFrom: colors.white,
-              backgroundGradientTo: colors.white,
-              decimalPlaces: 2,
-              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-              style: {
-                borderRadius: 16,
-              },
-              propsForDots: {
-                r: "6",
-                strokeWidth: "2",
-                stroke: colors.primary,
-              },
-            }}
-            style={{
-              marginVertical: 8,
-              borderRadius: 16,
-            }}
-          />
+        {/* Summary Stats Card */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.cardTitle}>Collection Summary</Text>
+
+          <View style={styles.statsGrid}>
+            {/* All-Time */}
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: `${colors.primary}15` }]}>
+                <TrendingUp size={20} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.statLabel}>All-Time</Text>
+                <Text style={styles.statValue}>{analyticsData.allTime.toFixed(2)} L</Text>
+              </View>
+            </View>
+
+            {/* Last Month */}
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: `${colors.secondary}15` }]}>
+                <Calendar size={20} color={colors.secondary} />
+              </View>
+              <View>
+                <Text style={styles.statLabel}>Last 30 Days</Text>
+                <Text style={styles.statValue}>{analyticsData.lastMonth.toFixed(2)} L</Text>
+              </View>
+            </View>
+
+            {/* Last Week */}
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: `${colors.success}15` }]}>
+                <Droplet size={20} color={colors.success} />
+              </View>
+              <View>
+                <Text style={styles.statLabel}>Last 7 Days</Text>
+                <Text style={styles.statValue}>{analyticsData.lastWeek.toFixed(2)} L</Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-        {/* Last Week */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Last Week</Text>
-          <Text style={styles.cardValue}>{analyticsData.lastWeek.toFixed(2)} liters</Text>
+        {/* Monthly Chart Card */}
+        <View style={styles.chartCard}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.cardTitle}>Monthly Breakdown</Text>
+            <View style={styles.chartLegend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: colors.primary }]} />
+                <Text style={styles.legendText}>Current Month</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: colors.secondary }]} />
+                <Text style={styles.legendText}>Previous Months</Text>
+              </View>
+            </View>
+          </View>
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading chart data...</Text>
+            </View>
+          ) : monthlyDataArray.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <BarChart3 size={48} color={colors.tertiary} />
+              <Text style={styles.emptyText}>No collection data available</Text>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+              contentContainerStyle={styles.chartScrollContent}
+            >
+              <BarChart
+                data={chartData}
+                width={chartWidth}
+                height={220}
+                yAxisLabel=""
+                yAxisSuffix=" L"
+                fromZero
+                // showValuesOnTopOfBars
+                withInnerLines={false}
+                flatColor={true}
+                chartConfig={{
+                  backgroundColor: colors.white,
+                  backgroundGradientFrom: colors.white,
+                  backgroundGradientTo: colors.white,
+                  decimalPlaces: 1,
+                  color: (opacity = 1, index) => {
+                    // Use custom colors for each bar
+                    if (index !== undefined && chartData.datasets[0].colors && chartData.datasets[0].colors[index]) {
+                      return chartData.datasets[0].colors[index](opacity)
+                    }
+                    return `rgba(39, 55, 77, ${opacity})`
+                  },
+                  labelColor: (opacity = 1) => `rgba(82, 109, 130, ${opacity})`,
+                  style: {
+                    borderRadius: 16,
+                  },
+                  barPercentage: 0.7,
+                  propsForLabels: {
+                    fontSize: 12,
+                  },
+                }}
+                style={styles.chart}
+              />
+            </ScrollView>
+          )}
+
+          {monthlyDataArray.length > 0 && <Text style={styles.scrollHint}>Scroll horizontally to view all months</Text>}
         </View>
 
-        {/* Today */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Today</Text>
-          <Text style={styles.cardValue}>{analyticsData.today.toFixed(2)} liters</Text>
+        {/* Performance Insights Card - Optional additional feature */}
+        <View style={styles.insightsCard}>
+          <Text style={styles.cardTitle}>Performance Insights</Text>
+
+          <View style={styles.insightItem}>
+            <View style={styles.insightIconContainer}>
+              <TrendingUp size={20} color={colors.success} />
+            </View>
+            <View style={styles.insightContent}>
+              <Text style={styles.insightTitle}>
+                {analyticsData.lastWeek > 0 ? "Active Collection Week" : "No Recent Collections"}
+              </Text>
+              <Text style={styles.insightDescription}>
+                {analyticsData.lastWeek > 0
+                  ? `You've collected ${analyticsData.lastWeek.toFixed(2)} liters in the past week.`
+                  : "You haven't made any collections in the past week."}
+              </Text>
+            </View>
+          </View>
+
+          {analyticsData.today > 0 && (
+            <View style={styles.insightItem}>
+              <View style={[styles.insightIconContainer, { backgroundColor: `${colors.primary}15` }]}>
+                <Calendar size={20} color={colors.primary} />
+              </View>
+              <View style={styles.insightContent}>
+                <Text style={styles.insightTitle}>Today's Achievement</Text>
+                <Text style={styles.insightDescription}>
+                  You've collected {analyticsData.today.toFixed(2)} liters today. Great job!
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
-      <BottomBar />
+      <EnhancedUserBottomBar />
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 16,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: spacing.md,
+    paddingBottom: 100, // Extra space for bottom bar
+  },
+  header: {
+    marginBottom: spacing.md,
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: colors.primary,
-    marginBottom: 20,
   },
-  card: {
+  todayCard: {
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.xl,
+    overflow: "hidden",
+    ...shadows.medium,
+  },
+  todayCardGradient: {
+    borderRadius: borderRadius.xl,
+  },
+  todayCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.lg,
+  },
+  todayIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.md,
+  },
+  todayTextContainer: {
+    flex: 1,
+  },
+  todayLabel: {
+    fontSize: 16,
+    color: colors.white,
+    opacity: 0.9,
+    marginBottom: spacing.xs,
+  },
+  todayValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: colors.white,
+  },
+  summaryCard: {
     backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.medium,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: colors.primary,
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
-  cardValue: {
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "48%",
+    marginBottom: spacing.md,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.sm,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: colors.secondary,
+    marginBottom: 2,
+  },
+  statValue: {
     fontSize: 16,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  chartCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.medium,
+  },
+  chartHeader: {
+    marginBottom: spacing.md,
+  },
+  chartLegend: {
+    flexDirection: "row",
+    marginTop: spacing.xs,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: spacing.md,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: spacing.xs,
+  },
+  legendText: {
+    fontSize: 12,
     color: colors.secondary,
   },
-});
+  chartScrollContent: {
+    paddingRight: spacing.md,
+  },
+  chart: {
+    borderRadius: borderRadius.lg,
+    marginVertical: spacing.sm,
+  },
+  scrollHint: {
+    fontSize: 12,
+    color: colors.secondary,
+    textAlign: "center",
+    marginTop: spacing.xs,
+    fontStyle: "italic",
+  },
+  loadingContainer: {
+    height: 220,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.secondary,
+  },
+  emptyContainer: {
+    height: 220,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.secondary,
+    marginTop: spacing.sm,
+  },
+  insightsCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    ...shadows.medium,
+  },
+  insightItem: {
+    flexDirection: "row",
+    marginBottom: spacing.md,
+  },
+  insightIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: `${colors.success}15`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.md,
+  },
+  insightContent: {
+    flex: 1,
+  },
+  insightTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  insightDescription: {
+    fontSize: 14,
+    color: colors.secondary,
+    lineHeight: 20,
+  },
+})
 
-export default AnalyticsScreen;
+export default AnalyticsScreen
+
