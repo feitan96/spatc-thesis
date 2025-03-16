@@ -36,7 +36,7 @@ const LoginScreen = () => {
         setLastName(lastName);
 
         if (userRole === "admin") {
-          router.replace("/shared/BinList");
+          router.replace("/admin/Dashboard");
         } else if (userRole === "user") {
           Toast.show({
             type: 'success',

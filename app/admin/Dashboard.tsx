@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from "react-native"
 import DateTimePicker from "@react-native-community/datetimepicker"
@@ -9,7 +11,18 @@ import { format } from "date-fns"
 import EnhancedAdminBottomBar from "../components/AdminBottomBar"
 import { useAuth } from "@/src/auth/AuthContext"
 import { colors, shadows, spacing, borderRadius } from "../../src/styles/styles"
-import { Calendar, ChevronDown, Users, Trash2, BarChart3, Clock, User } from "lucide-react-native"
+import {
+  Calendar,
+  ChevronDown,
+  Users,
+  Trash2,
+  BarChart3,
+  Clock,
+  User,
+  ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
+} from "lucide-react-native"
 
 interface TrashEmptyingHistory {
   bin: string
@@ -28,6 +41,14 @@ interface BinVolume {
   totalVolume: number
 }
 
+// Define sort options
+type SortOption = {
+  id: string
+  label: string
+  icon: React.ReactNode
+  sortFn: (a: TrashEmptyingHistory, b: TrashEmptyingHistory) => number
+}
+
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -40,8 +61,38 @@ const Dashboard = () => {
   const [selectedBin, setSelectedBin] = useState<string | null>(null)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showBinDropdown, setShowBinDropdown] = useState(false)
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const [selectedSortOption, setSelectedSortOption] = useState<string>("timeDesc")
 
   const { userRole, firstName, lastName } = useAuth()
+
+  // Define sort options
+  const sortOptions: Record<string, SortOption> = {
+    timeDesc: {
+      id: "timeDesc",
+      label: "Time (Newest First)",
+      icon: <ArrowDown size={16} color={colors.secondary} />,
+      sortFn: (a, b) => b.emptiedAt.getTime() - a.emptiedAt.getTime(),
+    },
+    timeAsc: {
+      id: "timeAsc",
+      label: "Time (Oldest First)",
+      icon: <ArrowUp size={16} color={colors.secondary} />,
+      sortFn: (a, b) => a.emptiedAt.getTime() - b.emptiedAt.getTime(),
+    },
+    volumeDesc: {
+      id: "volumeDesc",
+      label: "Volume (Highest First)",
+      icon: <ArrowDown size={16} color={colors.secondary} />,
+      sortFn: (a, b) => b.volume - a.volume,
+    },
+    volumeAsc: {
+      id: "volumeAsc",
+      label: "Volume (Lowest First)",
+      icon: <ArrowUp size={16} color={colors.secondary} />,
+      sortFn: (a, b) => a.volume - b.volume,
+    },
+  }
 
   // Fetch trash emptying history for the selected date
   const fetchHistory = async (date: Date) => {
@@ -132,10 +183,12 @@ const Dashboard = () => {
     }
   }
 
-  // Filter history based on selected user and bin
-  const filteredHistory = history.filter((item) => {
-    return (!selectedUser || item.collector === selectedUser) && (!selectedBin || item.bin === selectedBin)
-  })
+  // Filter and sort history based on selected options
+  const processedHistory = history
+    .filter((item) => {
+      return (!selectedUser || item.collector === selectedUser) && (!selectedBin || item.bin === selectedBin)
+    })
+    .sort(sortOptions[selectedSortOption].sortFn)
 
   // Get the user with the highest volume
   const topUser = users.length > 0 ? users[0] : null
@@ -181,33 +234,42 @@ const Dashboard = () => {
           </View>
 
           {/* Top Collector Card */}
-          {topUser && (
-            <View style={styles.statCard}>
-              <View style={[styles.statIconContainer, { backgroundColor: colors.secondary }]}>
-                <Users size={20} color={colors.white} />
+          <View style={styles.topContainer}>
+            {topUser && (
+              <View style={styles.statCard}>
+                <View style={[styles.statIconContainer, { backgroundColor: colors.secondary }]}>
+                  <Users size={20} color={colors.white} />
+                </View>
+                <Text style={styles.statLabel}>Top Collector</Text>
+                <Text style={styles.statValue}>{topUser.collector}</Text>
+                <Text style={styles.statSubvalue}>{topUser.totalVolume.toFixed(2)} L</Text>
               </View>
-              <Text style={styles.statLabel}>Top Collector</Text>
-              <Text style={styles.statValue}>{topUser.collector}</Text>
-              <Text style={styles.statSubvalue}>{topUser.totalVolume.toFixed(2)} L</Text>
-            </View>
-          )}
+            )}
 
-          {/* Top Bin Card */}
-          {topBin && (
-            <View style={styles.statCard}>
-              <View style={[styles.statIconContainer, { backgroundColor: colors.success }]}>
-                <Trash2 size={20} color={colors.white} />
+            {/* Top Bin Card */}
+            {topBin && (
+              <View style={styles.statCard}>
+                <View style={[styles.statIconContainer, { backgroundColor: colors.success }]}>
+                  <Trash2 size={20} color={colors.white} />
+                </View>
+                <Text style={styles.statLabel}>Top Bin</Text>
+                <Text style={styles.statValue}>{topBin.bin}</Text>
+                <Text style={styles.statSubvalue}>{topBin.totalVolume.toFixed(2)} L</Text>
               </View>
-              <Text style={styles.statLabel}>Top Bin</Text>
-              <Text style={styles.statValue}>{topBin.bin}</Text>
-              <Text style={styles.statSubvalue}>{topBin.totalVolume.toFixed(2)} L</Text>
-            </View>
-          )}
+            )}
+          </View>
         </View>
 
         {/* Filters */}
         <View style={styles.filterContainer}>
-          <Text style={styles.sectionTitle}>History</Text>
+          <View style={styles.filterHeader}>
+            <Text style={styles.sectionTitle}>History</Text>
+            <TouchableOpacity style={styles.sortButton} onPress={() => setShowSortDropdown(true)}>
+              <ArrowUpDown size={16} color={colors.primary} />
+              <Text style={styles.sortButtonText}>Sort</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.filterButtons}>
             <TouchableOpacity style={styles.filterButton} onPress={() => setShowUserDropdown(true)}>
               <User size={16} color={colors.secondary} />
@@ -234,32 +296,34 @@ const Dashboard = () => {
               <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.loadingText}>Loading data...</Text>
             </View>
-          ) : filteredHistory.length === 0 ? (
+          ) : processedHistory.length === 0 ? (
             <View style={styles.emptyStateContainer}>
               <Trash2 size={48} color={colors.tertiary} />
               <Text style={styles.noHistoryText}>No history found for this date.</Text>
             </View>
           ) : (
-            filteredHistory.map((item, index) => (
-              <View key={index} style={styles.historyCard}>
-                <View style={styles.historyCardHeader}>
-                  <Text style={styles.binName}>{item.bin}</Text>
-                  <View style={styles.volumeBadge}>
-                    <Text style={styles.volumeBadgeText}>{item.volume.toFixed(2)} L</Text>
+            <ScrollView style={styles.historyScroll} contentContainerStyle={styles.historyScrollContent}>
+              {processedHistory.map((item, index) => (
+                <View key={index} style={styles.historyCard}>
+                  <View style={styles.historyCardHeader}>
+                    <Text style={styles.binName}>{item.bin}</Text>
+                    <View style={styles.volumeBadge}>
+                      <Text style={styles.volumeBadgeText}>{item.volume.toFixed(2)} L</Text>
+                    </View>
+                  </View>
+                  <View style={styles.historyCardContent}>
+                    <View style={styles.historyCardItem}>
+                      <User size={16} color={colors.secondary} />
+                      <Text style={styles.historyCardItemText}>{item.collector}</Text>
+                    </View>
+                    <View style={styles.historyCardItem}>
+                      <Clock size={16} color={colors.secondary} />
+                      <Text style={styles.historyCardItemText}>{format(item.emptiedAt, "h:mm a")}</Text>
+                    </View>
                   </View>
                 </View>
-                <View style={styles.historyCardContent}>
-                  <View style={styles.historyCardItem}>
-                    <User size={16} color={colors.secondary} />
-                    <Text style={styles.historyCardItemText}>{item.collector}</Text>
-                  </View>
-                  <View style={styles.historyCardItem}>
-                    <Clock size={16} color={colors.secondary} />
-                    <Text style={styles.historyCardItemText}>{format(item.emptiedAt, "h:mm a")}</Text>
-                  </View>
-                </View>
-              </View>
-            ))
+              ))}
+            </ScrollView>
           )}
         </View>
       </ScrollView>
@@ -338,6 +402,36 @@ const Dashboard = () => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Sort Dropdown Modal */}
+      <Modal
+        visible={showSortDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSortDropdown(false)}
+      >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowSortDropdown(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Sort By</Text>
+            {Object.values(sortOptions).map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.modalItem, selectedSortOption === option.id && styles.modalItemSelected]}
+                onPress={() => {
+                  setSelectedSortOption(option.id)
+                  setShowSortDropdown(false)
+                }}
+              >
+                <View style={styles.sortOptionContainer}>
+                  {option.icon}
+                  <Text style={styles.modalItemText}>{option.label}</Text>
+                </View>
+                {selectedSortOption === option.id && <View style={styles.modalItemSelectedIndicator} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <EnhancedAdminBottomBar />
     </View>
   )
@@ -406,7 +500,13 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: "bold",
   },
+  topContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
   statCard: {
+    flex: 1,
     backgroundColor: colors.white,
     borderRadius: borderRadius.xl,
     padding: spacing.md,
@@ -447,6 +547,32 @@ const styles = StyleSheet.create({
   filterContainer: {
     marginBottom: spacing.md,
   },
+  filterHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  sortButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.tertiary,
+  },
+  sortButtonText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: "600",
+    marginLeft: spacing.xs,
+  },
+  sortOptionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   filterButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -469,10 +595,23 @@ const styles = StyleSheet.create({
   },
   historyListContainer: {
     marginBottom: spacing.xl,
+    height: 500,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    ...shadows.small,
+    overflow: "hidden",
+  },
+  historyScroll: {
+    flex: 1,
+  },
+  historyScrollContent: {
+    padding: spacing.sm,
   },
   loadingContainer: {
     padding: spacing.xl,
     alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
   },
   loadingText: {
     marginTop: spacing.md,
@@ -480,12 +619,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   emptyStateContainer: {
-    padding: spacing.xl * 2,
+    padding: spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.xl,
-    ...shadows.small,
+    flex: 1,
   },
   noHistoryText: {
     fontSize: 16,
@@ -495,10 +632,11 @@ const styles = StyleSheet.create({
   },
   historyCard: {
     backgroundColor: colors.white,
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
-    ...shadows.small,
+    borderWidth: 1,
+    borderColor: colors.background,
   },
   historyCardHeader: {
     flexDirection: "row",
@@ -568,6 +706,7 @@ const styles = StyleSheet.create({
   modalItemText: {
     fontSize: 16,
     color: colors.primary,
+    marginLeft: spacing.xs,
   },
   modalItemSelectedIndicator: {
     width: 8,
