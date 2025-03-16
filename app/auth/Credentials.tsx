@@ -58,7 +58,7 @@ const CredentialsScreen = () => {
       Toast.show({
         type: 'success',
         text1: 'Account Creation Successful!',
-        text2: 'Navigating to Homescreen...',
+        text2: 'Navigating to Login screen...',
       });
       router.replace("/auth/Login");
     } catch (error) {
