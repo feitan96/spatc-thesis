@@ -6,7 +6,7 @@ const AdminBottomBar = () => {
   const tabs = [
     {
       icon: <FontAwesome5 name="home" size={22} color={colors.primary} />,
-      label: "Dashboard",
+      label: "Home",
       path: "/admin/Dashboard",
     },
     {

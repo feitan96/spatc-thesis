@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from "react-native"
-import { colors } from "../../../src/styles/styles"
+import { colors, trashLevels } from "../../../src/styles/styles"
 import { Trash2 } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 
@@ -52,24 +52,10 @@ const BinCardEnhanced = ({ binName, binData, onPress }: BinCardEnhancedProps) =>
     ]).start()
   }, [trashLevel])
 
-  // Get gradient colors based on trash level
-  const getGradientColors = () => {
-    if (trashLevel >= 90) return ["#EF4444", "#B91C1C"] // Critical - Red
-    if (trashLevel >= 50) return ["#F59E0B", "#D97706"] // Warning - Amber
-    if (trashLevel > 0) return ["#10B981", "#059669"] // Good - Green
-    return ["#10B981", "#059669"] // Empty - Green
-  }
-
-  // Determine status text and color based on trash level
-  const getStatusInfo = () => {
-    if (trashLevel >= 90) return { text: "Critical", color: "#EF4444" }
-    if (trashLevel >= 50) return { text: "Warning", color: "#F59E0B" }
-    if (trashLevel >= 0) return { text: "Good", color: "#10B981" }
-    return { text: "Empty", color: "#10B981" }
-  }
-
-  const statusInfo = getStatusInfo()
-  const gradientColors = getGradientColors()
+  // Get status color and text using the constants
+  const statusColor = trashLevels.getColor(trashLevel)
+  const statusText = trashLevels.getStatusText(trashLevel)
+  const gradientColors = trashLevels.getGradientColors(trashLevel)
 
   return (
     <Animated.View style={[styles.cardContainer, { transform: [{ scale: bounceAnim }] }]}>
@@ -79,15 +65,15 @@ const BinCardEnhanced = ({ binName, binData, onPress }: BinCardEnhancedProps) =>
             <Trash2 size={22} color={colors.primary} />
           </View>
           <Text style={styles.binName}>{binName}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
-            <Text style={styles.statusBadgeText}>{statusInfo.text}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+            <Text style={styles.statusBadgeText}>{statusText}</Text>
           </View>
         </View>
 
         <View style={styles.progressContainer}>
           <View style={styles.progressInfo}>
             <Text style={styles.progressLabel}>Trash Level</Text>
-            <Text style={[styles.progressValue, { color: statusInfo.color }]}>{Math.round(trashLevel)}%</Text>
+            <Text style={[styles.progressValue, { color: statusColor }]}>{Math.round(trashLevel)}%</Text>
           </View>
 
           <View style={styles.progressBarContainer}>
@@ -112,6 +98,7 @@ const BinCardEnhanced = ({ binName, binData, onPress }: BinCardEnhancedProps) =>
           </View>
         </View>
 
+        {/* Footer section commented out as in your original code */}
         {/* <View style={styles.footer}>
           {binData?.location && (
             <Text style={styles.locationText} numberOfLines={1}>

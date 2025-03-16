@@ -22,6 +22,7 @@ const Analytics = () => {
   const [timePeriod, setTimePeriod] = useState("all-time");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [totalVolume, setTotalVolume] = useState(0); // Add total volume state
 
   // Get the start date based on selected time period
   const getStartDate = useCallback(() => {
@@ -74,6 +75,7 @@ const Analytics = () => {
       
       const querySnapshot = await getDocs(queryRef);
       const binsMap: { [key: string]: number } = {};
+      let total = 0; // Initialize total volume
 
       querySnapshot.forEach((doc) => {
         const entry = doc.data();
@@ -84,6 +86,7 @@ const Analytics = () => {
           binsMap[bin] = 0;
         }
         binsMap[bin] += volume;
+        total += volume; // Add to total volume
       });
 
       const binsList = Object.entries(binsMap)
@@ -94,6 +97,7 @@ const Analytics = () => {
         .sort((a, b) => b.volume - a.volume);
 
       setBinsData(binsList);
+      setTotalVolume(total); // Update total volume state
     } catch (error) {
       console.error("Error fetching bins data:", error);
     } finally {
@@ -180,6 +184,12 @@ const Analytics = () => {
         style={globalStyles.container}
         contentContainerStyle={globalStyles.contentContainer}
       >
+        {/* Total Volume Section */}
+        <View style={styles.totalVolumeContainer}>
+          <Text style={styles.totalVolumeLabel}>Total Volume Collected</Text>
+          <Text style={styles.totalVolumeValue}>{totalVolume.toFixed(2)} liters</Text>
+        </View>
+
         {/* Time Period Dropdown */}
         <View style={styles.dropdownContainer}>
           <Text style={styles.dropdownLabel}>Time Period:</Text>
@@ -305,6 +315,24 @@ const Analytics = () => {
 };
 
 const styles = StyleSheet.create({
+  totalVolumeContainer: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    ...globalStyles.shadow,
+  },
+  totalVolumeLabel: {
+    fontSize: 16,
+    color: colors.white,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  totalVolumeValue: {
+    fontSize: 24,
+    color: colors.white,
+    fontWeight: "bold",
+  },
   dropdownContainer: {
     flexDirection: "row",
     alignItems: "center",

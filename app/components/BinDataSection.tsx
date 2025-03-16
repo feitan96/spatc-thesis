@@ -1,6 +1,6 @@
 import type React from "react"
 import { View, Text, StyleSheet } from "react-native"
-import { colors } from "../../src/styles/styles"
+import { colors, trashLevels } from "../../src/styles/styles"
 import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from "@expo/vector-icons"
 
 interface BinDataSectionProps {
@@ -14,35 +14,23 @@ interface BinDataSectionProps {
 }
 
 const BinDataSection: React.FC<BinDataSectionProps> = ({ distance, gps, trashLevel }) => {
-  // Get color based on trash level
-  const getTrashLevelColor = (level: number) => {
-    if (level >= 90) return "#EF4444" // Critical - Red
-    if (level >= 50) return "#F59E0B" // Warning - Amber
-    return "#10B981" // Good - Green
-  }
-
-  const trashLevelColor = getTrashLevelColor(trashLevel)
-
-  // Get status text based on trash level
-  const getStatusText = (level: number) => {
-    if (level >= 90) return "Critical"
-    if (level >= 50) return "Warning"
-    return "Good"
-  }
+  // Get status color and text using the constants
+  const statusColor = trashLevels.getColor(trashLevel)
+  const statusText = trashLevels.getStatusText(trashLevel)
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Bin Status</Text>
-        <View style={[styles.statusBadge, { backgroundColor: trashLevelColor }]}>
-          <Text style={styles.statusText}>{getStatusText(trashLevel)}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+          <Text style={styles.statusText}>{statusText}</Text>
         </View>
       </View>
 
       <View style={styles.trashLevelContainer}>
         <View style={styles.trashLevelInfo}>
           <Text style={styles.trashLevelLabel}>Trash Level</Text>
-          <Text style={[styles.trashLevelValue, { color: trashLevelColor }]}>{trashLevel}%</Text>
+          <Text style={[styles.trashLevelValue, { color: statusColor }]}>{trashLevel}%</Text>
         </View>
         <View style={styles.progressBarContainer}>
           <View
@@ -50,7 +38,7 @@ const BinDataSection: React.FC<BinDataSectionProps> = ({ distance, gps, trashLev
               styles.progressBar,
               {
                 width: `${trashLevel}%`,
-                backgroundColor: trashLevelColor,
+                backgroundColor: statusColor,
               },
             ]}
           />
