@@ -302,28 +302,35 @@ const Dashboard = () => {
               <Text style={styles.noHistoryText}>No history found for this date.</Text>
             </View>
           ) : (
-            <ScrollView style={styles.historyScroll} contentContainerStyle={styles.historyScrollContent}>
-              {processedHistory.map((item, index) => (
-                <View key={index} style={styles.historyCard}>
-                  <View style={styles.historyCardHeader}>
-                    <Text style={styles.binName}>{item.bin}</Text>
-                    <View style={styles.volumeBadge}>
-                      <Text style={styles.volumeBadgeText}>{item.volume.toFixed(2)} L</Text>
+            <View style={styles.historyListWrapper}>
+              <ScrollView 
+                style={styles.historyScroll} 
+                contentContainerStyle={styles.historyScrollContent}
+                nestedScrollEnabled={true}
+                showsVerticalScrollIndicator={true}
+              >
+                {processedHistory.map((item, index) => (
+                  <View key={index} style={styles.historyCard}>
+                    <View style={styles.historyCardHeader}>
+                      <Text style={styles.binName}>{item.bin}</Text>
+                      <View style={styles.volumeBadge}>
+                        <Text style={styles.volumeBadgeText}>{item.volume.toFixed(2)} L</Text>
+                      </View>
+                    </View>
+                    <View style={styles.historyCardContent}>
+                      <View style={styles.historyCardItem}>
+                        <User size={16} color={colors.secondary} />
+                        <Text style={styles.historyCardItemText}>{item.collector}</Text>
+                      </View>
+                      <View style={styles.historyCardItem}>
+                        <Clock size={16} color={colors.secondary} />
+                        <Text style={styles.historyCardItemText}>{format(item.emptiedAt, "h:mm a")}</Text>
+                      </View>
                     </View>
                   </View>
-                  <View style={styles.historyCardContent}>
-                    <View style={styles.historyCardItem}>
-                      <User size={16} color={colors.secondary} />
-                      <Text style={styles.historyCardItemText}>{item.collector}</Text>
-                    </View>
-                    <View style={styles.historyCardItem}>
-                      <Clock size={16} color={colors.secondary} />
-                      <Text style={styles.historyCardItemText}>{format(item.emptiedAt, "h:mm a")}</Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
+                ))}
+              </ScrollView>
+            </View>
           )}
         </View>
       </ScrollView>
@@ -595,11 +602,13 @@ const styles = StyleSheet.create({
   },
   historyListContainer: {
     marginBottom: spacing.xl,
-    height: 500,
     backgroundColor: colors.white,
     borderRadius: borderRadius.xl,
     ...shadows.small,
     overflow: "hidden",
+  },
+  historyListWrapper: {
+    height: 500,
   },
   historyScroll: {
     flex: 1,
