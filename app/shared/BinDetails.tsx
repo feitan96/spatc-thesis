@@ -7,7 +7,7 @@ import { ref, onValue } from "firebase/database";
 import { database, db } from "../../firebaseConfig";
 import { useLocalSearchParams } from "expo-router";
 import axios from "axios";
-import { collection, addDoc, getDocs, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, serverTimestamp, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { format, toZonedTime } from "date-fns-tz";
 import { colors } from "../../src/styles/styles";
 import Spinner from "../components/Spinner";
@@ -26,6 +26,8 @@ interface Notification {
   trashLevel: number;
   datetime: string;
   bin: string;
+  id: string;
+  isRead: boolean;
 }
 
 interface WeatherData {
@@ -48,6 +50,7 @@ const BinDetails = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastReadTimestamp, setLastReadTimestamp] = useState<string | null>(null);
 
   const API_KEY = "d1b379e89fe87076140d9462009828b2";
   const WORLD_TIDES_API_KEY = "490af8cc-8cb4-4c81-a717-be6b6c718762";
@@ -95,33 +98,38 @@ const BinDetails = () => {
     }
   }, [binName]);
 
-  // Fetch notifications
+  // Fetch notifications with real-time updates
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!binName) return;
+    if (!binName) return;
 
-      try {
-        const querySnapshot = await getDocs(collection(db, "notifications"));
-        const fetchedNotifications = querySnapshot.docs
-          .map((doc) => {
-            const data = doc.data();
-            return {
-              trashLevel: data.trashLevel,
-              datetime: data.datetime,
-              bin: data.bin,
-            };
-          })
-          .filter((notification) => notification.bin === binName);
+    const notificationsRef = collection(db, "notifications");
+    const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
+      const fetchedNotifications = snapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            trashLevel: data.trashLevel,
+            datetime: data.datetime,
+            bin: data.bin,
+            isRead: data.isRead || false,
+          };
+        })
+        .filter((notification) => notification.bin === binName);
 
-        fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
-        setNotifications(fetchedNotifications);
-      } catch (error) {
-        console.error("Error fetching notifications: ", error);
-      }
-    };
+      fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+      setNotifications(fetchedNotifications);
 
-    fetchNotifications();
-  }, [binName]);
+      // Check for new notifications
+      const hasUnread = fetchedNotifications.some(
+        (notification) => !notification.isRead && 
+        (!lastReadTimestamp || new Date(notification.datetime) > new Date(lastReadTimestamp))
+      );
+      setHasNewNotifications(hasUnread);
+    });
+
+    return () => unsubscribe();
+  }, [binName, lastReadTimestamp]);
 
   // Fetch weather data
   useEffect(() => {
@@ -204,9 +212,11 @@ const BinDetails = () => {
         .map((doc) => {
           const data = doc.data();
           return {
+            id: doc.id,
             trashLevel: data.trashLevel,
             datetime: data.datetime,
             bin: data.bin,
+            isRead: data.isRead || false,
           };
         })
         .filter((notification) => notification.bin === binName);
@@ -220,6 +230,32 @@ const BinDetails = () => {
     setRefreshing(false);
   };
 
+  // Handle modal open/close
+  const handleModalOpen = async () => {
+    setIsModalVisible(true);
+    setHasNewNotifications(false);
+    
+    // Update last read timestamp
+    const currentTime = new Date().toISOString();
+    setLastReadTimestamp(currentTime);
+
+    // Mark all notifications as read
+    const unreadNotifications = notifications.filter(n => !n.isRead);
+    const updatePromises = unreadNotifications.map(notification =>
+      updateDoc(doc(db, "notifications", notification.id), { isRead: true })
+    );
+    
+    try {
+      await Promise.all(updatePromises);
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+  };
+
   if (isLoading) {
     return <Spinner />;
   }
@@ -230,7 +266,7 @@ const BinDetails = () => {
 
       <Header
         title={binName || "Unknown"}
-        onNotificationPress={() => setIsModalVisible(true)}
+        onNotificationPress={handleModalOpen}
         hasNewNotifications={hasNewNotifications}
       />
 
@@ -242,7 +278,7 @@ const BinDetails = () => {
         <BinDataSection
           distance={binData.distance}
           gps={binData.gps}
-          trashLevel={binData.trashLevel}
+          trashLevel={binData.trashLevel ?? 0}
         />
 
         <WeatherSection weather={weather} tideData={tideData} />
@@ -256,10 +292,7 @@ const BinDetails = () => {
 
       <NotificationModal
         visible={isModalVisible}
-        onClose={() => {
-          setIsModalVisible(false);
-          setHasNewNotifications(false);
-        }}
+        onClose={handleModalClose}
         notifications={notifications}
       />
 
