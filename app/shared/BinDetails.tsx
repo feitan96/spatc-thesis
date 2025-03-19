@@ -24,10 +24,15 @@ import FloatingTrashBubble from "../components/FloatingTrashBubble";
 
 interface Notification {
   trashLevel: number;
-  datetime: string;
+  datetime: any; // Changed to any since it's now a ServerTimestamp
   bin: string;
   id: string;
   isRead: boolean;
+  gps: {
+    latitude: number;
+    longitude: number;
+    altitude: number;
+  };
 }
 
 interface WeatherData {
@@ -102,7 +107,7 @@ const BinDetails = () => {
   useEffect(() => {
     if (!binName) return;
 
-    const notificationsRef = collection(db, "notifications");
+    const notificationsRef = collection(db, "newNotifications");
     const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
       const fetchedNotifications = snapshot.docs
         .map((doc) => {
@@ -113,23 +118,27 @@ const BinDetails = () => {
             datetime: data.datetime,
             bin: data.bin,
             isRead: data.isRead || false,
+            gps: data.gps || null,
           };
         })
         .filter((notification) => notification.bin === binName);
 
-      fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+      fetchedNotifications.sort((a, b) => {
+        const dateA = a.datetime?.toDate?.() || new Date(0);
+        const dateB = b.datetime?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
       setNotifications(fetchedNotifications);
 
-      // Check for new notifications
+      // Check for notifications that don't have isRead: true
       const hasUnread = fetchedNotifications.some(
-        (notification) => !notification.isRead && 
-        (!lastReadTimestamp || new Date(notification.datetime) > new Date(lastReadTimestamp))
+        (notification) => notification.isRead !== true
       );
       setHasNewNotifications(hasUnread);
     });
 
     return () => unsubscribe();
-  }, [binName, lastReadTimestamp]);
+  }, [binName]);
 
   // Fetch weather data
   useEffect(() => {
@@ -207,7 +216,7 @@ const BinDetails = () => {
 
     // Fetch notifications
     try {
-      const querySnapshot = await getDocs(collection(db, "notifications"));
+      const querySnapshot = await getDocs(collection(db, "newNotifications"));
       const fetchedNotifications = querySnapshot.docs
         .map((doc) => {
           const data = doc.data();
@@ -217,12 +226,23 @@ const BinDetails = () => {
             datetime: data.datetime,
             bin: data.bin,
             isRead: data.isRead || false,
+            gps: data.gps || null,
           };
         })
         .filter((notification) => notification.bin === binName);
 
-      fetchedNotifications.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+      fetchedNotifications.sort((a, b) => {
+        const dateA = a.datetime?.toDate?.() || new Date(0);
+        const dateB = b.datetime?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
       setNotifications(fetchedNotifications);
+
+      // Check for notifications that don't have isRead: true
+      const hasUnread = fetchedNotifications.some(
+        (notification) => notification.isRead !== true
+      );
+      setHasNewNotifications(hasUnread);
     } catch (error) {
       console.error("Error fetching notifications: ", error);
     }
@@ -233,20 +253,17 @@ const BinDetails = () => {
   // Handle modal open/close
   const handleModalOpen = async () => {
     setIsModalVisible(true);
-    setHasNewNotifications(false);
     
-    // Update last read timestamp
-    const currentTime = new Date().toISOString();
-    setLastReadTimestamp(currentTime);
-
     // Mark all notifications as read
     const unreadNotifications = notifications.filter(n => !n.isRead);
     const updatePromises = unreadNotifications.map(notification =>
-      updateDoc(doc(db, "notifications", notification.id), { isRead: true })
+      updateDoc(doc(db, "newNotifications", notification.id), { isRead: true })
     );
     
     try {
       await Promise.all(updatePromises);
+      // Only set hasNewNotifications to false after successfully marking notifications as read
+      setHasNewNotifications(false);
     } catch (error) {
       console.error("Error marking notifications as read:", error);
     }
