@@ -15,8 +15,6 @@ import {
   Alert,
 } from "react-native"
 import { useAuth } from "../../src/auth/AuthContext"
-import EnhancedAdminBottomBar from "../components/AdminBottomBar"
-import EnhancedUserBottomBar from "../components/UserBottomBar"
 import { colors, shadows, spacing, borderRadius } from "../../src/styles/styles"
 import { auth, db } from "../../firebaseConfig"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
@@ -37,6 +35,11 @@ import {
   Bell,
   HelpCircle,
   Info,
+  Lock,
+  Trash2,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 
@@ -320,8 +323,6 @@ const SettingsScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {userRole === "admin" ? <EnhancedAdminBottomBar /> : <EnhancedUserBottomBar />}
 
       <Toast />
     </View>

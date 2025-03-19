@@ -9,8 +9,6 @@ import { colors } from "../../src/styles/styles"
 import Spinner from "../components/Spinner"
 import FullScreenMap from "../components/FullScreenMap"
 import { useAuth } from "../../src/auth/AuthContext"
-import AdminBottomBar from "../components/AdminBottomBar"
-import UserBottomBar from "../components/UserBottomBar"
 import BinActionDialog from "../components/bin-management/BinActionDialog"
 import BinAssignmentModal from "../components/bin-management/BinAssignmentModal"
 import { useBinAssignments } from "../../src/hooks/useBinAssignments"
@@ -156,8 +154,6 @@ const BinList = () => {
       <Modal visible={isMapVisible} transparent={true} animationType="slide">
         <FullScreenMap binData={binData} onClose={() => setIsMapVisible(false)} />
       </Modal>
-
-      {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />}
     </View>
   )
 }

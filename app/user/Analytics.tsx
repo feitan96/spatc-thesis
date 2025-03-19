@@ -1,15 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native"
-import { collection, query, where, getDocs } from "firebase/firestore"
+import React, { useEffect, useState, useCallback } from "react"
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Modal, Dimensions } from "react-native"
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore"
 import { db } from "../../firebaseConfig"
+import { globalStyles, colors, shadows, spacing, borderRadius, trashLevels } from "../../src/styles/styles"
+import Icon from "react-native-vector-icons/MaterialCommunityIcons"
 import { useAuth } from "../../src/auth/AuthContext"
-import { colors, shadows, spacing, borderRadius, trashLevels } from "../../src/styles/styles"
-import EnhancedUserBottomBar from "../components/UserBottomBar"
 import { BarChart } from "react-native-chart-kit"
 import { format, subDays, isToday } from "date-fns"
-import { BarChart3, Calendar, TrendingUp, Droplet } from "lucide-react-native"
+import {
+  BarChart3,
+  Calendar,
+  ChevronDown,
+  ArrowUp,
+  ArrowDown,
+  Users,
+  Trash2,
+  Clock,
+  TrendingUp,
+  Droplet,
+} from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 
 // Define the type for analytics data
@@ -309,8 +320,16 @@ const AnalyticsScreen = () => {
             </View>
           )}
         </View>
+
+        <LinearGradient
+          colors={["#4CAF50", "#45a049"] as readonly [string, string]}
+          style={styles.gradientButton}
+        >
+          <Text style={styles.gradientButtonText}>View Details</Text>
+        </LinearGradient>
+
+        <Text style={styles.dateText}>{format(new Date(), "MMMM d, yyyy")}</Text>
       </ScrollView>
-      <EnhancedUserBottomBar />
     </View>
   )
 }
@@ -509,6 +528,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.secondary,
     lineHeight: 20,
+  },
+  gradientButton: {
+    marginTop: spacing.md,
+    marginHorizontal: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gradientButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  dateText: {
+    fontSize: 14,
+    color: colors.secondary,
+    textAlign: "center",
+    marginTop: spacing.xs,
   },
 })
 

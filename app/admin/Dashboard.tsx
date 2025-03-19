@@ -8,7 +8,6 @@ import DateTimePicker from "@react-native-community/datetimepicker"
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
 import { db } from "../../firebaseConfig"
 import { format } from "date-fns"
-import EnhancedAdminBottomBar from "../components/AdminBottomBar"
 import { useAuth } from "@/src/auth/AuthContext"
 import { colors, shadows, spacing, borderRadius } from "../../src/styles/styles"
 import {
@@ -438,8 +437,6 @@ const Dashboard = () => {
           </View>
         </TouchableOpacity>
       </Modal>
-
-      <EnhancedAdminBottomBar />
     </View>
   )
 }

@@ -1,10 +1,20 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Modal } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Modal, Dimensions } from "react-native";
 import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
-import AdminBottomBar from "../components/AdminBottomBar";
 import { globalStyles, colors } from "../../src/styles/styles";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useAuth } from "../../src/auth/AuthContext";
+import {
+  BarChart3,
+  Calendar,
+  ChevronDown,
+  ArrowUp,
+  ArrowDown,
+  Users,
+  Trash2,
+  Clock,
+} from "lucide-react-native";
 
 // Time period options
 const TIME_PERIODS = [
@@ -308,8 +318,6 @@ const Analytics = () => {
           </View>
         </TouchableOpacity>
       </Modal>
-
-      <AdminBottomBar />
     </View>
   );
 };
