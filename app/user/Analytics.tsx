@@ -7,7 +7,7 @@ import { db } from "../../firebaseConfig"
 import { useAuth } from "../../src/auth/AuthContext"
 import { colors, shadows, spacing, borderRadius } from "../../src/styles/styles"
 import EnhancedUserBottomBar from "../components/UserBottomBar"
-import { BarChart } from "react-native-chart-kit"
+import { BarChart } from "react-native-gifted-charts"
 import { format, subDays, isToday, isYesterday } from "date-fns"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import {
@@ -244,17 +244,6 @@ const AnalyticsScreen = () => {
       newDate.setDate(newDate.getDate() + 1)
       setSelectedDate(newDate)
     }
-  }
-
-  // Prepare data for the bar chart
-  const chartData = {
-    labels: monthlyDataArray.map((item) => item.month),
-    datasets: [
-      {
-        data: monthlyDataArray.map((item) => Math.round(item.volume)),
-        colors: monthlyDataArray.map((item) => (item.isCurrentMonth ? () => colors.primary : () => colors.secondary)),
-      },
-    ],
   }
 
   const screenWidth = Dimensions.get("window").width - 40
@@ -503,39 +492,30 @@ const AnalyticsScreen = () => {
               contentContainerStyle={styles.chartScrollContent}
             >
               <BarChart
-                data={chartData}
-                width={chartWidth}
+                data={monthlyDataArray.map((item, index) => ({
+                  value: item.volume,
+                  label: item.month,
+                  frontColor: item.isCurrentMonth ? colors.primary : colors.secondary,
+                }))}
+                width={Math.max(screenWidth, monthlyDataArray.length * 100)}
                 height={280}
-                yAxisLabel=""
-                yAxisSuffix=" L"
+                barWidth={40}
+                spacing={20}
+                initialSpacing={20}
+                endSpacing={20}
+                xAxisColor={colors.tertiary}
+                yAxisColor={colors.tertiary}
+                yAxisTextStyle={{ color: colors.secondary, fontSize: 12 }}
+                xAxisLabelTextStyle={{ color: colors.secondary, fontSize: 12, transform: [{ rotate: '0deg' }] }}
+                hideRules
+                showYAxisIndices
+                yAxisLabelWidth={50}
+                yAxisLabelSuffix=" L"
+                yAxisLabelPrefix=""
+                showFractionalValues={false}
                 fromZero
-                withInnerLines={true}
-                flatColor={true}
-                chartConfig={{
-                  backgroundColor: colors.white,
-                  backgroundGradientFrom: colors.white,
-                  backgroundGradientTo: colors.white,
-                  decimalPlaces: 0,
-                  color: (opacity = 1, index) => {
-                    if (index !== undefined && chartData.datasets[0].colors && chartData.datasets[0].colors[index]) {
-                      return chartData.datasets[0].colors[index](opacity)
-                    }
-                    return `rgba(39, 55, 77, ${opacity})`
-                  },
-                  labelColor: (opacity = 1) => `rgba(82, 109, 130, ${opacity})`,
-                  style: {
-                    borderRadius: 16,
-                  },
-                  barPercentage: 0.7,
-                  propsForLabels: {
-                    fontSize: 12,
-                  },
-                }}
-                style={styles.chart}
-                segments={5}
-                withHorizontalLabels={true}
-                verticalLabelRotation={45}
-                yAxisInterval={yAxisInterval}
+                maxValue={Math.ceil(Math.max(...monthlyDataArray.map(item => item.volume), 1))}
+                noOfSections={5}
               />
             </ScrollView>
           )}
