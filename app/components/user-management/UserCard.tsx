@@ -1,15 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native"
 import type { UserCardProps } from "../../../src/types/userManagement"
 import { colors } from "../../../src/styles/styles"
 import { useUsers } from "../../../src/hooks/useUsers"
-import React from "react"
+import { useBinAssignments } from "../../../src/hooks/useBinAssignments"
+import { Users, Trash2, X } from "lucide-react-native"
+import BinAssignmentModal from "./BinAssignmentModal"
 
 const UserCard = ({ user, onUserDeleted }: UserCardProps) => {
   const [isModalVisible, setIsModalVisible] = useState(false)
+  const [isBinAssignmentModalVisible, setIsBinAssignmentModalVisible] = useState(false)
   const { softDeleteUser } = useUsers()
+  const { bins } = useBinAssignments()
+
+  // Get assigned bins for this user
+  const assignedBins = bins
+    .filter((bin) => bin.assignee.includes(user.id))
+    .map((bin) => bin.bin)
 
   const handleDelete = async () => {
     const success = await softDeleteUser(user.id)
@@ -27,6 +36,18 @@ const UserCard = ({ user, onUserDeleted }: UserCardProps) => {
             {user.firstName} {user.lastName}
           </Text>
           <Text style={styles.userEmail}>{user.email}</Text>
+          {assignedBins.length > 0 && (
+            <View style={styles.assignedBinsContainer}>
+              <Text style={styles.assignedBinsLabel}>Assigned Bins:</Text>
+              <View style={styles.binTags}>
+                {assignedBins.map((bin) => (
+                  <View key={bin} style={styles.binTag}>
+                    <Text style={styles.binTagText}>{bin}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
         <TouchableOpacity style={styles.viewButton} onPress={() => setIsModalVisible(true)}>
           <Text style={styles.viewButtonText}>View</Text>
@@ -34,45 +55,78 @@ const UserCard = ({ user, onUserDeleted }: UserCardProps) => {
       </View>
 
       {/* User Details Modal */}
-      <Modal visible={isModalVisible} transparent={true} animationType="slide">
-        <View style={styles.modalContainer}>
+      <Modal visible={isModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>User Details</Text>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Name:</Text>
-              <Text style={styles.detailValue}>
-                {user.firstName} {user.lastName}
-              </Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>User Details</Text>
+              <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                <X size={24} color={colors.primary} />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Email:</Text>
-              <Text style={styles.detailValue}>{user.email}</Text>
+            <View style={styles.modalBody}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Name:</Text>
+                <Text style={styles.detailValue}>
+                  {user.firstName} {user.lastName}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Email:</Text>
+                <Text style={styles.detailValue}>{user.email}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Contact:</Text>
+                <Text style={styles.detailValue}>{user.contactNumber}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Address:</Text>
+                <Text style={styles.detailValue}>{user.address}</Text>
+              </View>
+
+              {assignedBins.length > 0 && (
+                <View style={styles.assignedBinsSection}>
+                  <Text style={styles.sectionTitle}>Assigned Bins</Text>
+                  <View style={styles.binTags}>
+                    {assignedBins.map((bin) => (
+                      <View key={bin} style={styles.binTag}>
+                        <Text style={styles.binTagText}>{bin}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
 
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Contact:</Text>
-              <Text style={styles.detailValue}>{user.contactNumber}</Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Address:</Text>
-              <Text style={styles.detailValue}>{user.address}</Text>
-            </View>
-
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                <Text style={styles.buttonText}>Delete</Text>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.assignButton]}
+                onPress={() => {
+                  setIsModalVisible(false)
+                  setIsBinAssignmentModalVisible(true)
+                }}
+              >
+                <Users size={20} color={colors.white} />
+                <Text style={styles.modalButtonText}>Manage Bin Assignments</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.closeButton} onPress={() => setIsModalVisible(false)}>
-                <Text style={styles.buttonText}>Close</Text>
+              <TouchableOpacity style={[styles.modalButton, styles.deleteButton]} onPress={handleDelete}>
+                <Trash2 size={20} color={colors.white} />
+                <Text style={styles.modalButtonText}>Delete User</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* Bin Assignment Modal */}
+      <BinAssignmentModal
+        visible={isBinAssignmentModalVisible}
+        userId={user.id}
+        userName={`${user.firstName} ${user.lastName}`}
+        onClose={() => setIsBinAssignmentModalVisible(false)}
+      />
     </>
   )
 }
@@ -84,7 +138,6 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
@@ -107,76 +160,115 @@ const styles = StyleSheet.create({
   },
   viewButton: {
     backgroundColor: colors.primary,
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    paddingHorizontal: 12,
     borderRadius: 8,
   },
   viewButtonText: {
     color: colors.white,
-    fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
-  modalContainer: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
     backgroundColor: colors.white,
     borderRadius: 16,
-    padding: 24,
     width: "90%",
-    maxWidth: 400,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.tertiary,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "bold",
     color: colors.primary,
-    marginBottom: 20,
-    textAlign: "center",
+  },
+  modalBody: {
+    padding: 16,
   },
   detailRow: {
     flexDirection: "row",
     marginBottom: 12,
-    alignItems: "flex-start",
   },
   detailLabel: {
-    width: 80,
+    width: 100,
     fontSize: 16,
-    fontWeight: "600",
-    color: colors.primary,
+    color: colors.secondary,
   },
   detailValue: {
     flex: 1,
     fontSize: 16,
-    color: colors.secondary,
+    color: colors.primary,
   },
-  buttonContainer: {
+  modalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.tertiary,
+    gap: 12,
+  },
+  modalButton: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  assignButton: {
+    backgroundColor: colors.primary,
   },
   deleteButton: {
     backgroundColor: "#e74c3c",
-    padding: 12,
-    borderRadius: 8,
-    flex: 1,
-    marginRight: 8,
-    alignItems: "center",
   },
-  closeButton: {
-    backgroundColor: colors.primary,
-    padding: 12,
-    borderRadius: 8,
-    flex: 1,
-    marginLeft: 8,
-    alignItems: "center",
-  },
-  buttonText: {
+  modalButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: "600",
+  },
+  assignedBinsContainer: {
+    marginTop: 8,
+  },
+  assignedBinsLabel: {
+    fontSize: 14,
+    color: colors.secondary,
+    marginBottom: 4,
+  },
+  binTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  binTag: {
+    backgroundColor: `${colors.primary}15`,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  binTagText: {
+    fontSize: 12,
+    color: colors.primary,
+  },
+  assignedBinsSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: `${colors.tertiary}30`,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.primary,
+    marginBottom: 8,
   },
 })
 
