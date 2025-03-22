@@ -8,7 +8,7 @@ import { useAuth } from "../../src/auth/AuthContext"
 import { colors, shadows, spacing, borderRadius } from "../../src/styles/styles"
 import EnhancedUserBottomBar from "../components/UserBottomBar"
 import { BarChart } from "react-native-chart-kit"
-import { format, subDays, isToday } from "date-fns"
+import { format, subDays, isToday, isYesterday } from "date-fns"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import {
   BarChart3,
@@ -20,9 +20,9 @@ import {
   Trash2,
   ArrowLeft,
   ArrowRight,
+  AlertCircle,
 } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
-import React from "react"
 
 // Define the type for analytics data
 interface AnalyticsData {
@@ -30,6 +30,7 @@ interface AnalyticsData {
   lastMonth: number
   monthly: { [key: string]: number }
   lastWeek: number
+  yesterday: number
   today: number
   selectedDate: number
 }
@@ -54,6 +55,7 @@ const AnalyticsScreen = () => {
     lastMonth: 0,
     monthly: {},
     lastWeek: 0,
+    yesterday: 0,
     today: 0,
     selectedDate: 0,
   })
@@ -83,6 +85,7 @@ const AnalyticsScreen = () => {
         lastMonth: 0,
         monthly: {},
         lastWeek: 0,
+        yesterday: 0,
         today: 0,
         selectedDate: 0,
       }
@@ -127,6 +130,11 @@ const AnalyticsScreen = () => {
         // Last Week
         if (emptiedAt > oneWeekAgo) {
           data.lastWeek += volume
+        }
+
+        // Yesterday
+        if (isYesterday(emptiedAt)) {
+          data.yesterday += volume
         }
 
         // Today
@@ -215,26 +223,18 @@ const AnalyticsScreen = () => {
   // For wider charts, use this width based on the number of months
   const chartWidth = Math.max(screenWidth, monthlyDataArray.length * 100)
 
-  // Render collection history item
-  const renderHistoryItem = ({ item }: { item: CollectionHistory }) => (
-    <View style={styles.historyItem}>
-      <View style={styles.historyItemLeft}>
-        <View style={styles.historyIconContainer}>
-          <Trash2 size={20} color={colors.primary} />
-        </View>
-        <View>
-          <Text style={styles.historyBinName}>{item.bin}</Text>
-          <View style={styles.historyTimeContainer}>
-            <Clock size={14} color={colors.tertiary} />
-            <Text style={styles.historyTime}>{format(item.emptiedAt, "MMM d, yyyy h:mm a")}</Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.historyVolume}>
-        <Text style={styles.historyVolumeText}>{item.volume.toFixed(2)} L</Text>
-      </View>
-    </View>
-  )
+  // Get filtered history items
+  const filteredHistory = collectionHistory.filter((item) => {
+    if (historyFilter === "selected") {
+      const itemDate = new Date(item.emptiedAt)
+      const start = new Date(selectedDate)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(selectedDate)
+      end.setHours(23, 59, 59, 999)
+      return itemDate >= start && itemDate <= end
+    }
+    return true // 'all' filter shows everything
+  })
 
   return (
     <View style={styles.container}>
@@ -340,6 +340,17 @@ const AnalyticsScreen = () => {
                 <Text style={styles.statValue}>{analyticsData.lastWeek.toFixed(2)} L</Text>
               </View>
             </View>
+
+            {/* Yesterday */}
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: `${colors.tertiary}15` }]}>
+                <Clock size={20} color={colors.tertiary} />
+              </View>
+              <View>
+                <Text style={styles.statLabel}>Yesterday</Text>
+                <Text style={styles.statValue}>{analyticsData.yesterday.toFixed(2)} L</Text>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -374,57 +385,41 @@ const AnalyticsScreen = () => {
               <Trash2 size={40} color={colors.tertiary} />
               <Text style={styles.emptyHistoryText}>No collection history found</Text>
             </View>
+          ) : filteredHistory.length === 0 ? (
+            <View style={styles.emptyHistoryContainer}>
+              <View style={styles.noDataGraphic}>
+                <AlertCircle size={40} color={colors.tertiary} />
+                <View style={styles.noDataLine} />
+                <Trash2 size={40} color={colors.tertiary} />
+              </View>
+              <Text style={styles.emptyHistoryText}>No collections found for this date</Text>
+              <Text style={styles.emptyHistorySubtext}>Try selecting a different date or view all collections</Text>
+            </View>
           ) : (
             <>
               <View style={styles.historyListContainer}>
                 <ScrollView style={styles.historyScrollView} nestedScrollEnabled={true}>
-                  {collectionHistory
-                    .filter((item) => {
-                      if (historyFilter === "selected") {
-                        const itemDate = new Date(item.emptiedAt)
-                        const start = new Date(selectedDate)
-                        start.setHours(0, 0, 0, 0)
-                        const end = new Date(selectedDate)
-                        end.setHours(23, 59, 59, 999)
-                        return itemDate >= start && itemDate <= end
-                      }
-                      return true // 'all' filter shows everything
-                    })
-                    .map((item) => (
-                      <View key={item.id} style={styles.historyItem}>
-                        <View style={styles.historyItemLeft}>
-                          {/* <View style={styles.historyIconContainer}>
-                            <Trash2 size={20} color={colors.primary} />
-                          </View> */}
-                          <View>
-                            <Text style={styles.historyBinName}>{item.bin}</Text>
-                            <View style={styles.historyTimeContainer}>
-                              <Clock size={14} color={colors.tertiary} />
-                              <Text style={styles.historyTime}>{format(item.emptiedAt, "MMM d, yyyy h:mm a")}</Text>
-                            </View>
+                  {filteredHistory.map((item) => (
+                    <View key={item.id} style={styles.historyItem}>
+                      <View style={styles.historyItemLeft}>
+                        <View>
+                          <Text style={styles.historyBinName}>{item.bin}</Text>
+                          <View style={styles.historyTimeContainer}>
+                            <Clock size={14} color={colors.tertiary} />
+                            <Text style={styles.historyTime}>{format(item.emptiedAt, "MMM d, yyyy h:mm a")}</Text>
                           </View>
                         </View>
-                        <View style={styles.historyVolume}>
-                          <Text style={styles.historyVolumeText}>{item.volume.toFixed(2)} L</Text>
-                        </View>
                       </View>
-                    ))}
+                      <View style={styles.historyVolume}>
+                        <Text style={styles.historyVolumeText}>{item.volume.toFixed(2)} L</Text>
+                      </View>
+                    </View>
+                  ))}
                 </ScrollView>
               </View>
 
               <Text style={styles.historyCountText}>
-                Showing{" "}
-                {historyFilter === "all"
-                  ? collectionHistory.length
-                  : collectionHistory.filter((item) => {
-                      const itemDate = new Date(item.emptiedAt)
-                      const start = new Date(selectedDate)
-                      start.setHours(0, 0, 0, 0)
-                      const end = new Date(selectedDate)
-                      end.setHours(23, 59, 59, 999)
-                      return itemDate >= start && itemDate <= end
-                    }).length}{" "}
-                collections
+                Showing {filteredHistory.length} collection{filteredHistory.length !== 1 ? "s" : ""}
               </Text>
             </>
           )}
@@ -737,11 +732,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: spacing.xl,
+    height: 300,
   },
   emptyHistoryText: {
-    fontSize: 14,
+    fontSize: 16,
     color: colors.secondary,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
+    textAlign: "center",
+  },
+  emptyHistorySubtext: {
+    fontSize: 14,
+    color: colors.tertiary,
+    marginTop: spacing.xs,
+    textAlign: "center",
+  },
+  noDataGraphic: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  noDataLine: {
+    height: 2,
+    width: 100,
+    backgroundColor: colors.tertiary,
+    marginHorizontal: spacing.md,
+    opacity: 0.5,
   },
   chartCard: {
     backgroundColor: colors.white,
