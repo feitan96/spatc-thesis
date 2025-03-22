@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     color: colors.secondary,
-    marginTop: 2,
+    marginTop: 0,
   },
   activeLabel: {
     color: colors.primary,

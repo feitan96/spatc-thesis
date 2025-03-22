@@ -284,13 +284,14 @@ const SettingsScreen = () => {
           {/* Settings Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Settings</Text>
-
+            {/*
             {renderSettingItem(
               "Notifications",
               <Bell size={20} color={colors.secondary} />,
               () => Alert.alert("Notifications", "Notification settings will be available soon."),
               `${colors.secondary}15`,
             )}
+               */}
 
             {userRole === "admin" &&
               renderSettingItem("Admin Controls", <Shield size={20} color={colors.primary} />, () =>
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100, // Extra space for bottom bar
+    paddingBottom: 80, // Extra space for bottom bar
   },
   header: {
     marginBottom: spacing.md,
@@ -479,11 +480,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#e74c3c",
+    backgroundColor: colors.error,
     borderRadius: borderRadius.xl,
     padding: spacing.md,
     marginHorizontal: spacing.md,
-    marginVertical: spacing.md,
+    marginVertical: spacing.xs,
     ...shadows.medium,
   },
   logoutButtonText: {
