@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
+import React from "react"
 
 // Define the type for analytics data
 interface AnalyticsData {

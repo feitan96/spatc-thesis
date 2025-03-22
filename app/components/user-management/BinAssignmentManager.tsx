@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
 import { Picker } from "@react-native-picker/picker"
 import type { BinAssignmentManagerProps, User } from "../../../src/types/userManagement"
 import { colors } from "../../../src/styles/styles"
+import React from "react"
 
 const BinAssignmentManager = ({ bins, users, onAssignUser, onUnassignUser }: BinAssignmentManagerProps) => {
   const [selectedBinId, setSelectedBinId] = useState<string | null>(null)
