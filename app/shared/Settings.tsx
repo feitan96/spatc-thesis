@@ -22,6 +22,7 @@ import { signOut } from "firebase/auth"
 import { router } from "expo-router"
 import Toast from "react-native-toast-message"
 import Spinner from "../components/Spinner"
+import FormButton from "../components/auth/FormButton"
 import {
   User,
   Mail,
@@ -314,10 +315,14 @@ const SettingsScreen = () => {
           </View>
 
           {/* Logout Button */}
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <LogOut size={20} color={colors.white} />
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
+          <View style={styles.logoutSection}>
+            <FormButton
+              title="Logout"
+              onPress={handleLogout}
+              variant="error"
+              icon={<LogOut size={20} color={colors.white} />}
+            />
+          </View>
 
           <View style={styles.versionContainer}>
             <Text style={styles.versionText}>Version 1.0.0</Text>
@@ -476,22 +481,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: "500",
   },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.error,
-    borderRadius: borderRadius.xl,
+  logoutSection: {
     padding: spacing.md,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.xs,
-    ...shadows.medium,
-  },
-  logoutButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.white,
-    marginLeft: spacing.sm,
+    marginTop: spacing.xs,
   },
   versionContainer: {
     alignItems: "center",
