@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from "react-native"
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore"
 import { db } from "../../firebaseConfig"
 import { useAuth } from "../../src/auth/AuthContext"
 import { colors, shadows, spacing, borderRadius } from "../../src/styles/styles"
@@ -24,6 +24,7 @@ import {
 } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 import React from "react"
+import { useLocalSearchParams } from "expo-router"
 
 // Define the type for analytics data
 interface AnalyticsData {
@@ -50,7 +51,9 @@ interface CollectionHistory {
 }
 
 const AnalyticsScreen = () => {
-  const { userId, firstName, lastName } = useAuth()
+  const { userId: currentUserId } = useAuth()
+  const { userId: routeUserId } = useLocalSearchParams()
+  const [targetUser, setTargetUser] = useState<{ firstName: string; lastName: string } | null>(null)
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     allTime: 0,
     lastMonth: 0,
@@ -67,18 +70,45 @@ const AnalyticsScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [historyFilter, setHistoryFilter] = useState<"all" | "selected">("all")
 
+  // Use the route userId if available, otherwise use the current user's id
+  const targetUserId = routeUserId ? routeUserId.toString() : currentUserId
+
+  // Fetch target user data if viewing another user's analytics
+  useEffect(() => {
+    const fetchTargetUser = async () => {
+      if (routeUserId && routeUserId !== currentUserId) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", routeUserId.toString()))
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            setTargetUser({
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+            })
+          }
+        } catch (error) {
+          console.error("Error fetching target user data:", error)
+        }
+      } else {
+        setTargetUser(null)
+      }
+    }
+
+    fetchTargetUser()
+  }, [routeUserId, currentUserId])
+
   // Fetch analytics data
   useEffect(() => {
     fetchAnalyticsData()
-  }, [userId, selectedDate])
+  }, [targetUserId, selectedDate])
 
   const fetchAnalyticsData = async () => {
-    if (!userId) return
+    if (!targetUserId) return
 
     setIsLoading(true)
     try {
       const trashEmptyingRef = collection(db, "trashEmptying")
-      const q = query(trashEmptyingRef, where("userId", "==", userId), orderBy("emptiedAt", "desc"))
+      const q = query(trashEmptyingRef, where("userId", "==", targetUserId), orderBy("emptiedAt", "desc"))
       const querySnapshot = await getDocs(q)
 
       const data: AnalyticsData = {
@@ -143,6 +173,11 @@ const AnalyticsScreen = () => {
         // Yesterday (relative to selected date)
         if (emptiedAt >= yesterdayForSelected && emptiedAt <= endOfYesterdayForSelected) {
           data.yesterday += volume
+        }
+
+        // Today's Collection (using selected date)
+        if (emptiedAt >= startOfSelectedDate && emptiedAt <= endOfSelectedDate) {
+          data.today += volume
         }
 
         // Selected Date
@@ -243,7 +278,11 @@ const AnalyticsScreen = () => {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>Analytics</Text>
+          <Text style={styles.title}>
+            {routeUserId && routeUserId !== currentUserId
+              ? `${targetUser?.firstName} ${targetUser?.lastName}`
+              : "Analytics"}
+          </Text>
         </View>
 
         {/* Date Selector */}
@@ -532,7 +571,7 @@ const AnalyticsScreen = () => {
           )}
         </View>
       </ScrollView>
-      <EnhancedUserBottomBar />
+      {!routeUserId && <EnhancedUserBottomBar />}
     </View>
   )
 }

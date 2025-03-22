@@ -6,8 +6,9 @@ import type { UserCardProps } from "../../../src/types/userManagement"
 import { colors } from "../../../src/styles/styles"
 import { useUsers } from "../../../src/hooks/useUsers"
 import { useBinAssignments } from "../../../src/hooks/useBinAssignments"
-import { Users, Trash2, X } from "lucide-react-native"
+import { Users, Trash2, X, BarChart3 } from "lucide-react-native"
 import BinAssignmentModal from "./BinAssignmentModal"
+import { router } from "expo-router"
 
 const UserCard = ({ user, onUserDeleted }: UserCardProps) => {
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -100,6 +101,20 @@ const UserCard = ({ user, onUserDeleted }: UserCardProps) => {
             </View>
 
             <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.analyticsButton]}
+                onPress={() => {
+                  setIsModalVisible(false)
+                  router.push({
+                    pathname: "/user/Analytics",
+                    params: { userId: user.id }
+                  })
+                }}
+              >
+                <BarChart3 size={20} color={colors.white} />
+                <Text style={styles.modalButtonText}>View Analytics</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.modalButton, styles.assignButton]}
                 onPress={() => {
@@ -223,6 +238,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     gap: 8,
+  },
+  analyticsButton: {
+    backgroundColor: colors.secondary,
   },
   assignButton: {
     backgroundColor: colors.primary,
