@@ -2,18 +2,33 @@ import { View, Text, StyleSheet } from "react-native"
 import type { UserListProps } from "../../../src/types/userManagement"
 import { colors } from "../../../src/styles/styles"
 import UserCard from "./UserCard"
+import { Users } from "lucide-react-native"
+import React from "react"
 
 const UserList = ({ users, onUserDeleted }: UserListProps) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>User Management</Text>
-
       {users.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No users found</Text>
+          <View style={styles.emptyStateIconContainer}>
+            <Users size={40} color={colors.tertiary} />
+          </View>
+          <Text style={styles.emptyStateTitle}>No Users Found</Text>
+          <Text style={styles.emptyStateText}>
+            {users.length === 0
+              ? "There are no users in the system yet."
+              : "No users match your search criteria. Try a different search term."}
+          </Text>
         </View>
       ) : (
-        users.map((user) => <UserCard key={user.id} user={user} onUserDeleted={onUserDeleted} />)
+        <>
+          <Text style={styles.resultCount}>{users.length} users found</Text>
+          <View style={styles.userGrid}>
+            {users.map((user) => (
+              <UserCard key={user.id} user={user} onUserDeleted={onUserDeleted} />
+            ))}
+          </View>
+        </>
       )}
     </View>
   )
@@ -21,23 +36,44 @@ const UserList = ({ users, onUserDeleted }: UserListProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 8,
+    flex: 1,
   },
-  sectionTitle: {
+  resultCount: {
+    fontSize: 14,
+    color: colors.secondary,
+    marginBottom: 12,
+  },
+  userGrid: {
+    gap: 12,
+  },
+  emptyState: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    ...colors.shadows,
+  },
+  emptyStateIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: colors.primary,
-    marginBottom: 16,
-  },
-  emptyState: {
-    padding: 20,
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    alignItems: "center",
+    marginBottom: 8,
   },
   emptyStateText: {
+    fontSize: 14,
     color: colors.secondary,
-    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 20,
   },
 })
 
