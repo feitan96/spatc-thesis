@@ -93,6 +93,13 @@ const AnalyticsScreen = () => {
       const historyItems: CollectionHistory[] = []
 
       const now = new Date()
+      const selectedDateTime = new Date(selectedDate)
+      const yesterdayForSelected = new Date(selectedDate)
+      yesterdayForSelected.setDate(selectedDateTime.getDate() - 1)
+      yesterdayForSelected.setHours(0, 0, 0, 0)
+      const endOfYesterdayForSelected = new Date(yesterdayForSelected)
+      endOfYesterdayForSelected.setHours(23, 59, 59, 999)
+
       const oneDayAgo = subDays(now, 1)
       const oneWeekAgo = subDays(now, 7)
       const oneMonthAgo = subDays(now, 30)
@@ -132,14 +139,9 @@ const AnalyticsScreen = () => {
           data.lastWeek += volume
         }
 
-        // Yesterday
-        if (isYesterday(emptiedAt)) {
+        // Yesterday (relative to selected date)
+        if (emptiedAt >= yesterdayForSelected && emptiedAt <= endOfYesterdayForSelected) {
           data.yesterday += volume
-        }
-
-        // Today
-        if (isToday(emptiedAt)) {
-          data.today += volume
         }
 
         // Selected Date
