@@ -22,6 +22,7 @@ import {
   ArrowRight,
 } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
+import React from "react"
 
 // Define the type for analytics data
 interface AnalyticsData {
@@ -61,6 +62,7 @@ const AnalyticsScreen = () => {
   const [collectionHistory, setCollectionHistory] = useState<CollectionHistory[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [historyFilter, setHistoryFilter] = useState<"all" | "selected">("all")
 
   // Fetch analytics data
   useEffect(() => {
@@ -343,7 +345,29 @@ const AnalyticsScreen = () => {
 
         {/* Collection History Card */}
         <View style={styles.historyCard}>
-          <Text style={styles.cardTitle}>Collection History</Text>
+          <View style={styles.historyHeader}>
+            <Text style={styles.cardTitle}>Collection History</Text>
+
+            <View style={styles.historyToggle}>
+              <TouchableOpacity
+                style={[styles.toggleButton, historyFilter === "all" && styles.toggleButtonActive]}
+                onPress={() => setHistoryFilter("all")}
+              >
+                <Text style={[styles.toggleButtonText, historyFilter === "all" && styles.toggleButtonTextActive]}>
+                  All
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.toggleButton, historyFilter === "selected" && styles.toggleButtonActive]}
+                onPress={() => setHistoryFilter("selected")}
+              >
+                <Text style={[styles.toggleButtonText, historyFilter === "selected" && styles.toggleButtonTextActive]}>
+                  Today
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {collectionHistory.length === 0 ? (
             <View style={styles.emptyHistoryContainer}>
@@ -351,31 +375,58 @@ const AnalyticsScreen = () => {
               <Text style={styles.emptyHistoryText}>No collection history found</Text>
             </View>
           ) : (
-            <View style={styles.historyList}>
-              {collectionHistory.slice(0, 5).map((item) => (
-                <View key={item.id} style={styles.historyItem}>
-                  <View style={styles.historyItemLeft}>
-                    <View style={styles.historyIconContainer}>
-                      <Trash2 size={20} color={colors.primary} />
-                    </View>
-                    <View>
-                      <Text style={styles.historyBinName}>{item.bin}</Text>
-                      <View style={styles.historyTimeContainer}>
-                        <Clock size={14} color={colors.tertiary} />
-                        <Text style={styles.historyTime}>{format(item.emptiedAt, "MMM d, yyyy h:mm a")}</Text>
+            <>
+              <View style={styles.historyListContainer}>
+                <ScrollView style={styles.historyScrollView} nestedScrollEnabled={true}>
+                  {collectionHistory
+                    .filter((item) => {
+                      if (historyFilter === "selected") {
+                        const itemDate = new Date(item.emptiedAt)
+                        const start = new Date(selectedDate)
+                        start.setHours(0, 0, 0, 0)
+                        const end = new Date(selectedDate)
+                        end.setHours(23, 59, 59, 999)
+                        return itemDate >= start && itemDate <= end
+                      }
+                      return true // 'all' filter shows everything
+                    })
+                    .map((item) => (
+                      <View key={item.id} style={styles.historyItem}>
+                        <View style={styles.historyItemLeft}>
+                          {/* <View style={styles.historyIconContainer}>
+                            <Trash2 size={20} color={colors.primary} />
+                          </View> */}
+                          <View>
+                            <Text style={styles.historyBinName}>{item.bin}</Text>
+                            <View style={styles.historyTimeContainer}>
+                              <Clock size={14} color={colors.tertiary} />
+                              <Text style={styles.historyTime}>{format(item.emptiedAt, "MMM d, yyyy h:mm a")}</Text>
+                            </View>
+                          </View>
+                        </View>
+                        <View style={styles.historyVolume}>
+                          <Text style={styles.historyVolumeText}>{item.volume.toFixed(2)} L</Text>
+                        </View>
                       </View>
-                    </View>
-                  </View>
-                  <View style={styles.historyVolume}>
-                    <Text style={styles.historyVolumeText}>{item.volume.toFixed(2)} L</Text>
-                  </View>
-                </View>
-              ))}
+                    ))}
+                </ScrollView>
+              </View>
 
-              {collectionHistory.length > 5 && (
-                <Text style={styles.moreHistoryText}>+ {collectionHistory.length - 5} more collections</Text>
-              )}
-            </View>
+              <Text style={styles.historyCountText}>
+                Showing{" "}
+                {historyFilter === "all"
+                  ? collectionHistory.length
+                  : collectionHistory.filter((item) => {
+                      const itemDate = new Date(item.emptiedAt)
+                      const start = new Date(selectedDate)
+                      start.setHours(0, 0, 0, 0)
+                      const end = new Date(selectedDate)
+                      end.setHours(23, 59, 59, 999)
+                      return itemDate >= start && itemDate <= end
+                    }).length}{" "}
+                collections
+              </Text>
+            </>
           )}
         </View>
 
@@ -498,7 +549,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
-    paddingBottom: 80, // Extra space for bottom bar
+    paddingBottom: 80,
   },
   header: {
     marginBottom: spacing.md,
@@ -787,6 +838,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.secondary,
     lineHeight: 20,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  historyToggle: {
+    flexDirection: "row",
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.lg,
+    padding: 2,
+  },
+  toggleButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: borderRadius.lg - 2,
+  },
+  toggleButtonActive: {
+    backgroundColor: colors.white,
+    ...shadows.small,
+  },
+  toggleButtonText: {
+    fontSize: 12,
+    color: colors.secondary,
+  },
+  toggleButtonTextActive: {
+    color: colors.primary,
+    fontWeight: "600",
+  },
+  historyListContainer: {
+    height: 300,
+    marginBottom: spacing.sm,
+  },
+  historyScrollView: {
+    flex: 1,
+  },
+  historyCountText: {
+    fontSize: 12,
+    color: colors.secondary,
+    textAlign: "center",
+    fontStyle: "italic",
   },
 })
 
