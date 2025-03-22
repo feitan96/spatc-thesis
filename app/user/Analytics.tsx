@@ -251,7 +251,7 @@ const AnalyticsScreen = () => {
     labels: monthlyDataArray.map((item) => item.month),
     datasets: [
       {
-        data: monthlyDataArray.map((item) => item.volume),
+        data: monthlyDataArray.map((item) => Math.round(item.volume)),
         colors: monthlyDataArray.map((item) => (item.isCurrentMonth ? () => colors.primary : () => colors.secondary)),
       },
     ],
@@ -260,6 +260,10 @@ const AnalyticsScreen = () => {
   const screenWidth = Dimensions.get("window").width - 40
   // For wider charts, use this width based on the number of months
   const chartWidth = Math.max(screenWidth, monthlyDataArray.length * 100)
+
+  // Get max value for y-axis and round it up to the next whole number
+  const maxYValue = Math.ceil(Math.max(...monthlyDataArray.map(item => item.volume), 1))
+  const yAxisInterval = Math.ceil(maxYValue / 5) // Divide into 5 segments
 
   // Get filtered history items
   const filteredHistory = collectionHistory.filter((item) => {
@@ -501,19 +505,18 @@ const AnalyticsScreen = () => {
               <BarChart
                 data={chartData}
                 width={chartWidth}
-                height={220}
+                height={280}
                 yAxisLabel=""
                 yAxisSuffix=" L"
                 fromZero
-                withInnerLines={false}
+                withInnerLines={true}
                 flatColor={true}
                 chartConfig={{
                   backgroundColor: colors.white,
                   backgroundGradientFrom: colors.white,
                   backgroundGradientTo: colors.white,
-                  decimalPlaces: 1,
+                  decimalPlaces: 0,
                   color: (opacity = 1, index) => {
-                    // Use custom colors for each bar
                     if (index !== undefined && chartData.datasets[0].colors && chartData.datasets[0].colors[index]) {
                       return chartData.datasets[0].colors[index](opacity)
                     }
@@ -529,6 +532,10 @@ const AnalyticsScreen = () => {
                   },
                 }}
                 style={styles.chart}
+                segments={5}
+                withHorizontalLabels={true}
+                verticalLabelRotation={45}
+                yAxisInterval={yAxisInterval}
               />
             </ScrollView>
           )}

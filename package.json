@@ -23,6 +23,7 @@
     "@react-native-picker/picker": "^2.11.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
+    "@shopify/react-native-skia": "^1.11.18",
     "axios": "^1.7.9",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
@@ -59,7 +60,8 @@
     "react-native-toast-message": "^2.2.1",
     "react-native-uuid": "^2.0.3",
     "react-native-web": "~0.19.13",
-    "react-native-webview": "13.12.5"
+    "react-native-webview": "13.12.5",
+    "victory-native": "^41.16.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
