@@ -4,14 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c6cafd35-e429-4d51-838c-ecc70777ba8c" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/AdminBottomBar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/AdminBottomBar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/BinDataSection.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/BinDataSection.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/FloatingTrashBubble.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/FloatingTrashBubble.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/bin-management/BinCardEnhanced.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/bin-management/BinCardEnhanced.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/styles/styles.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/styles/styles.ts" afterDir="false" />
-    </list>
+    <list default="true" id="c6cafd35-e429-4d51-838c-ecc70777ba8c" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

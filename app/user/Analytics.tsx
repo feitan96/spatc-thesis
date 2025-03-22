@@ -1,25 +1,25 @@
 "use client"
 
-import React, { useEffect, useState, useCallback } from "react"
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Modal, Dimensions } from "react-native"
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore"
+import { useEffect, useState } from "react"
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from "react-native"
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
 import { db } from "../../firebaseConfig"
-import { globalStyles, colors, shadows, spacing, borderRadius, trashLevels } from "../../src/styles/styles"
-import Icon from "react-native-vector-icons/MaterialCommunityIcons"
 import { useAuth } from "../../src/auth/AuthContext"
+import { colors, shadows, spacing, borderRadius } from "../../src/styles/styles"
+import EnhancedUserBottomBar from "../components/UserBottomBar"
 import { BarChart } from "react-native-chart-kit"
 import { format, subDays, isToday } from "date-fns"
+import DateTimePicker from "@react-native-community/datetimepicker"
 import {
   BarChart3,
   Calendar,
-  ChevronDown,
-  ArrowUp,
-  ArrowDown,
-  Users,
-  Trash2,
-  Clock,
   TrendingUp,
   Droplet,
+  ChevronDown,
+  Clock,
+  Trash2,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 
@@ -30,6 +30,7 @@ interface AnalyticsData {
   monthly: { [key: string]: number }
   lastWeek: number
   today: number
+  selectedDate: number
 }
 
 interface MonthlyData {
@@ -38,101 +39,164 @@ interface MonthlyData {
   isCurrentMonth: boolean
 }
 
+interface CollectionHistory {
+  id: string
+  bin: string
+  volume: number
+  emptiedAt: Date
+}
+
 const AnalyticsScreen = () => {
-  const { userId } = useAuth()
+  const { userId, firstName, lastName } = useAuth()
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     allTime: 0,
     lastMonth: 0,
     monthly: {},
     lastWeek: 0,
     today: 0,
+    selectedDate: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
   const [monthlyDataArray, setMonthlyDataArray] = useState<MonthlyData[]>([])
+  const [collectionHistory, setCollectionHistory] = useState<CollectionHistory[]>([])
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
   // Fetch analytics data
   useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      if (!userId) return
+    fetchAnalyticsData()
+  }, [userId, selectedDate])
 
-      setIsLoading(true)
-      try {
-        const trashEmptyingRef = collection(db, "trashEmptying")
-        const q = query(trashEmptyingRef, where("userId", "==", userId))
-        const querySnapshot = await getDocs(q)
+  const fetchAnalyticsData = async () => {
+    if (!userId) return
 
-        const data: AnalyticsData = {
-          allTime: 0,
-          lastMonth: 0,
-          monthly: {},
-          lastWeek: 0,
-          today: 0,
+    setIsLoading(true)
+    try {
+      const trashEmptyingRef = collection(db, "trashEmptying")
+      const q = query(trashEmptyingRef, where("userId", "==", userId), orderBy("emptiedAt", "desc"))
+      const querySnapshot = await getDocs(q)
+
+      const data: AnalyticsData = {
+        allTime: 0,
+        lastMonth: 0,
+        monthly: {},
+        lastWeek: 0,
+        today: 0,
+        selectedDate: 0,
+      }
+
+      const historyItems: CollectionHistory[] = []
+
+      const now = new Date()
+      const oneDayAgo = subDays(now, 1)
+      const oneWeekAgo = subDays(now, 7)
+      const oneMonthAgo = subDays(now, 30)
+
+      // Get current month for comparison
+      const currentMonthYear = format(now, "MMM yyyy")
+
+      // Start and end of selected date
+      const startOfSelectedDate = new Date(selectedDate)
+      startOfSelectedDate.setHours(0, 0, 0, 0)
+
+      const endOfSelectedDate = new Date(selectedDate)
+      endOfSelectedDate.setHours(23, 59, 59, 999)
+
+      querySnapshot.forEach((doc) => {
+        const entry = doc.data()
+        const emptiedAt = entry.emptiedAt.toDate()
+        const volume = entry.volume
+
+        // All-Time
+        data.allTime += volume
+
+        // Last Month
+        if (emptiedAt > oneMonthAgo) {
+          data.lastMonth += volume
         }
 
-        const now = new Date()
-        const oneDayAgo = subDays(now, 1)
-        const oneWeekAgo = subDays(now, 7)
-        const oneMonthAgo = subDays(now, 30)
+        // Monthly
+        const monthYear = format(emptiedAt, "MMM yyyy")
+        if (!data.monthly[monthYear]) {
+          data.monthly[monthYear] = 0
+        }
+        data.monthly[monthYear] += volume
 
-        // Get current month for comparison
-        const currentMonthYear = format(now, "MMM yyyy")
+        // Last Week
+        if (emptiedAt > oneWeekAgo) {
+          data.lastWeek += volume
+        }
 
-        querySnapshot.forEach((doc) => {
-          const entry = doc.data()
-          const emptiedAt = entry.emptiedAt.toDate()
-          const volume = entry.volume
+        // Today
+        if (isToday(emptiedAt)) {
+          data.today += volume
+        }
 
-          // All-Time
-          data.allTime += volume
+        // Selected Date
+        if (emptiedAt >= startOfSelectedDate && emptiedAt <= endOfSelectedDate) {
+          data.selectedDate += volume
+        }
 
-          // Last Month
-          if (emptiedAt > oneMonthAgo) {
-            data.lastMonth += volume
-          }
-
-          // Monthly
-          const monthYear = format(emptiedAt, "MMM yyyy")
-          if (!data.monthly[monthYear]) {
-            data.monthly[monthYear] = 0
-          }
-          data.monthly[monthYear] += volume
-
-          // Last Week
-          if (emptiedAt > oneWeekAgo) {
-            data.lastWeek += volume
-          }
-
-          // Today
-          if (isToday(emptiedAt)) {
-            data.today += volume
-          }
+        // Collection history
+        historyItems.push({
+          id: doc.id,
+          bin: entry.bin,
+          volume: entry.volume,
+          emptiedAt: emptiedAt,
         })
+      })
 
-        // Process monthly data for chart
-        const monthlyEntries = Object.entries(data.monthly).map(([month, volume]) => ({
-          month,
-          volume,
-          isCurrentMonth: month === currentMonthYear,
-        }))
+      // Process monthly data for chart
+      const monthlyEntries = Object.entries(data.monthly).map(([month, volume]) => ({
+        month,
+        volume,
+        isCurrentMonth: month === currentMonthYear,
+      }))
 
-        // Sort by date (oldest to newest)
-        monthlyEntries.sort((a, b) => {
-          const dateA = new Date(a.month)
-          const dateB = new Date(b.month)
-          return dateA.getTime() - dateB.getTime()
-        })
+      // Sort by date (oldest to newest)
+      monthlyEntries.sort((a, b) => {
+        const dateA = new Date(a.month)
+        const dateB = new Date(b.month)
+        return dateA.getTime() - dateB.getTime()
+      })
 
-        setAnalyticsData(data)
-        setMonthlyDataArray(monthlyEntries)
-      } catch (error) {
-        console.error("Error fetching analytics data:", error)
-      } finally {
-        setIsLoading(false)
-      }
+      setAnalyticsData(data)
+      setMonthlyDataArray(monthlyEntries)
+      setCollectionHistory(historyItems)
+    } catch (error) {
+      console.error("Error fetching analytics data:", error)
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    fetchAnalyticsData()
-  }, [userId])
+  // Handle date change
+  const handleDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false)
+    if (date) {
+      setSelectedDate(date)
+    }
+  }
+
+  // Navigate to previous day
+  const goToPreviousDay = () => {
+    const newDate = new Date(selectedDate)
+    newDate.setDate(newDate.getDate() - 1)
+    setSelectedDate(newDate)
+  }
+
+  // Navigate to next day
+  const goToNextDay = () => {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    // Don't allow selecting future dates
+    if (selectedDate.getTime() < new Date().setHours(0, 0, 0, 0)) {
+      const newDate = new Date(selectedDate)
+      newDate.setDate(newDate.getDate() + 1)
+      setSelectedDate(newDate)
+    }
+  }
 
   // Prepare data for the bar chart
   const chartData = {
@@ -149,6 +213,27 @@ const AnalyticsScreen = () => {
   // For wider charts, use this width based on the number of months
   const chartWidth = Math.max(screenWidth, monthlyDataArray.length * 100)
 
+  // Render collection history item
+  const renderHistoryItem = ({ item }: { item: CollectionHistory }) => (
+    <View style={styles.historyItem}>
+      <View style={styles.historyItemLeft}>
+        <View style={styles.historyIconContainer}>
+          <Trash2 size={20} color={colors.primary} />
+        </View>
+        <View>
+          <Text style={styles.historyBinName}>{item.bin}</Text>
+          <View style={styles.historyTimeContainer}>
+            <Clock size={14} color={colors.tertiary} />
+            <Text style={styles.historyTime}>{format(item.emptiedAt, "MMM d, yyyy h:mm a")}</Text>
+          </View>
+        </View>
+      </View>
+      <View style={styles.historyVolume}>
+        <Text style={styles.historyVolumeText}>{item.volume.toFixed(2)} L</Text>
+      </View>
+    </View>
+  )
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -156,10 +241,45 @@ const AnalyticsScreen = () => {
           <Text style={styles.title}>Analytics</Text>
         </View>
 
+        {/* Date Selector */}
+        <View style={styles.dateSelector}>
+          <TouchableOpacity style={styles.dateNavButton} onPress={goToPreviousDay}>
+            <ArrowLeft size={20} color={colors.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.datePicker} onPress={() => setShowDatePicker(true)}>
+            <Calendar size={18} color={colors.primary} />
+            <Text style={styles.dateText}>{format(selectedDate, "MMMM d, yyyy")}</Text>
+            <ChevronDown size={18} color={colors.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.dateNavButton}
+            onPress={goToNextDay}
+            disabled={selectedDate.getTime() >= new Date().setHours(0, 0, 0, 0)}
+          >
+            <ArrowRight
+              size={20}
+              color={selectedDate.getTime() >= new Date().setHours(0, 0, 0, 0) ? colors.tertiary : colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Date Picker Modal */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+            maximumDate={new Date()}
+          />
+        )}
+
         {/* Today's Volume - Highlighted Card */}
         <View style={styles.todayCard}>
           <LinearGradient
-            colors={trashLevels.getGradientColors(50)}
+            colors={[colors.primary, colors.secondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.todayCardGradient}
@@ -169,8 +289,13 @@ const AnalyticsScreen = () => {
                 <Calendar size={24} color={colors.white} />
               </View>
               <View style={styles.todayTextContainer}>
-                <Text style={styles.todayLabel}>Today's Collection</Text>
-                <Text style={styles.todayValue}>{analyticsData.today.toFixed(2)} liters</Text>
+                <Text style={styles.todayLabel}>
+                  {isToday(selectedDate) ? "Today's Collection" : "Selected Date Collection"}
+                </Text>
+                <Text style={styles.todayValue}>
+                  {isToday(selectedDate) ? analyticsData.today.toFixed(2) : analyticsData.selectedDate.toFixed(2)}{" "}
+                  liters
+                </Text>
               </View>
             </View>
           </LinearGradient>
@@ -216,6 +341,44 @@ const AnalyticsScreen = () => {
           </View>
         </View>
 
+        {/* Collection History Card */}
+        <View style={styles.historyCard}>
+          <Text style={styles.cardTitle}>Collection History</Text>
+
+          {collectionHistory.length === 0 ? (
+            <View style={styles.emptyHistoryContainer}>
+              <Trash2 size={40} color={colors.tertiary} />
+              <Text style={styles.emptyHistoryText}>No collection history found</Text>
+            </View>
+          ) : (
+            <View style={styles.historyList}>
+              {collectionHistory.slice(0, 5).map((item) => (
+                <View key={item.id} style={styles.historyItem}>
+                  <View style={styles.historyItemLeft}>
+                    <View style={styles.historyIconContainer}>
+                      <Trash2 size={20} color={colors.primary} />
+                    </View>
+                    <View>
+                      <Text style={styles.historyBinName}>{item.bin}</Text>
+                      <View style={styles.historyTimeContainer}>
+                        <Clock size={14} color={colors.tertiary} />
+                        <Text style={styles.historyTime}>{format(item.emptiedAt, "MMM d, yyyy h:mm a")}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.historyVolume}>
+                    <Text style={styles.historyVolumeText}>{item.volume.toFixed(2)} L</Text>
+                  </View>
+                </View>
+              ))}
+
+              {collectionHistory.length > 5 && (
+                <Text style={styles.moreHistoryText}>+ {collectionHistory.length - 5} more collections</Text>
+              )}
+            </View>
+          )}
+        </View>
+
         {/* Monthly Chart Card */}
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
@@ -254,7 +417,6 @@ const AnalyticsScreen = () => {
                 yAxisLabel=""
                 yAxisSuffix=" L"
                 fromZero
-                // showValuesOnTopOfBars
                 withInnerLines={false}
                 flatColor={true}
                 chartConfig={{
@@ -286,7 +448,7 @@ const AnalyticsScreen = () => {
           {monthlyDataArray.length > 0 && <Text style={styles.scrollHint}>Scroll horizontally to view all months</Text>}
         </View>
 
-        {/* Performance Insights Card - Optional additional feature */}
+        {/* Performance Insights Card */}
         <View style={styles.insightsCard}>
           <Text style={styles.cardTitle}>Performance Insights</Text>
 
@@ -320,16 +482,8 @@ const AnalyticsScreen = () => {
             </View>
           )}
         </View>
-
-        <LinearGradient
-          colors={["#4CAF50", "#45a049"] as readonly [string, string]}
-          style={styles.gradientButton}
-        >
-          <Text style={styles.gradientButtonText}>View Details</Text>
-        </LinearGradient>
-
-        <Text style={styles.dateText}>{format(new Date(), "MMMM d, yyyy")}</Text>
       </ScrollView>
+      <EnhancedUserBottomBar />
     </View>
   )
 }
@@ -344,7 +498,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
-    paddingBottom: 100, // Extra space for bottom bar
+    paddingBottom: 80, // Extra space for bottom bar
   },
   header: {
     marginBottom: spacing.md,
@@ -353,6 +507,36 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     color: colors.primary,
+  },
+  dateSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.md,
+  },
+  dateNavButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    ...shadows.small,
+  },
+  datePicker: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    ...shadows.small,
+  },
+  dateText: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: "500",
+    marginHorizontal: spacing.sm,
   },
   todayCard: {
     marginBottom: spacing.md,
@@ -432,6 +616,81 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: colors.primary,
+  },
+  historyCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.medium,
+  },
+  historyList: {
+    marginTop: spacing.xs,
+  },
+  historyItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: `${colors.tertiary}20`,
+  },
+  historyItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  historyIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: `${colors.primary}10`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.sm,
+  },
+  historyBinName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+  historyTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  historyTime: {
+    fontSize: 12,
+    color: colors.tertiary,
+    marginLeft: 4,
+  },
+  historyVolume: {
+    backgroundColor: `${colors.primary}10`,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.lg,
+  },
+  historyVolumeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+  moreHistoryText: {
+    fontSize: 14,
+    color: colors.secondary,
+    textAlign: "center",
+    marginTop: spacing.sm,
+    fontStyle: "italic",
+  },
+  emptyHistoryContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  emptyHistoryText: {
+    fontSize: 14,
+    color: colors.secondary,
+    marginTop: spacing.sm,
   },
   chartCard: {
     backgroundColor: colors.white,
@@ -528,26 +787,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.secondary,
     lineHeight: 20,
-  },
-  gradientButton: {
-    marginTop: spacing.md,
-    marginHorizontal: spacing.md,
-    padding: spacing.md,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  gradientButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.white,
-  },
-  dateText: {
-    fontSize: 14,
-    color: colors.secondary,
-    textAlign: "center",
-    marginTop: spacing.xs,
   },
 })
 

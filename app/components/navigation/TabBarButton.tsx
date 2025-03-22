@@ -35,9 +35,9 @@ const styles = StyleSheet.create({
     // Active tab styling
   },
   iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   indicator: {
     position: "absolute",
     top: 0,
-    width: 20,
+    width: 16,
     height: 3,
     backgroundColor: colors.primary,
     borderRadius: 1.5,
