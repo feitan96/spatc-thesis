@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  Image
 } from "react-native"
 import { colors, shadows } from "../../../src/styles/styles"
 import { ArrowLeft } from "lucide-react-native"
@@ -45,9 +46,11 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle, show
               </TouchableOpacity>
             )}
             <View style={styles.logoContainer}>
-              <View style={styles.logo}>
-                <Text style={styles.logoText}>TCS</Text>
-              </View>
+              <Image 
+                source={require("../../../assets/images/SeaGBin-logo-cropped.png")} 
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.title}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -89,6 +92,11 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginBottom: 24,
+  },
+  logoImage: {
+    width: 120, // Adjust as needed
+    height: 120, // Adjust as needed
+    ...shadows.medium,
   },
   logo: {
     width: 80,
