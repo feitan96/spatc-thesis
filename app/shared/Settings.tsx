@@ -176,7 +176,7 @@ const SettingsScreen = () => {
       <View style={styles.fieldIconContainer}>{icon}</View>
       <View style={styles.fieldContent}>
         <Text style={styles.fieldLabel}>{label}</Text>
-        {isEditing && field !== "email" ? (
+        {isEditing && field !== "email" && field !== "address" ? (
           <TextInput
             style={styles.fieldInput}
             value={value}

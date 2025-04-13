@@ -118,9 +118,9 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ visible, onClose,
                 <Bell size={24} color={colors.white} style={styles.titleIcon} />
                 <Text style={styles.modalTitle}>Notifications</Text>
               </View>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              {/* <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                 <X size={22} color={colors.white} />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </LinearGradient>
 
