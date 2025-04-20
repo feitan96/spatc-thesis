@@ -8,7 +8,6 @@ import { database, db } from "../../firebaseConfig";
 import { useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import { collection, addDoc, getDocs, serverTimestamp, onSnapshot, updateDoc, doc } from "firebase/firestore";
-import { format, toZonedTime } from "date-fns-tz";
 import { colors } from "../../src/styles/styles";
 import Spinner from "../components/Spinner";
 import Header from "../components/Header";
@@ -16,11 +15,10 @@ import BinDataSection from "../components/BinDataSection";
 import WeatherSection from "../components/WeatherSection";
 import MapSection from "../components/MapSection";
 import NotificationModal from "../modals/NotificationModal";
-import AdminBottomBar from "../components/AdminBottomBar";
-import UserBottomBar from "../components/UserBottomBar";
 import { useAuth } from "../../src/auth/AuthContext";
 import TrashLevelChart from "../components/TrashLevelChart";
 import FloatingTrashBubble from "../components/FloatingTrashBubble";
+import BinAssignee from '../components/BinAssignee';
 
 interface Notification {
   trashLevel: number;
@@ -56,9 +54,9 @@ const BinDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastReadTimestamp, setLastReadTimestamp] = useState<string | null>(null);
-
+  
   const API_KEY = "d1b379e89fe87076140d9462009828b2";
-  const WORLD_TIDES_API_KEY = "490af8cc-8cb4-4c81-a717-be6b6c718762";
+  //const WORLD_TIDES_API_KEY = "490af8cc-8cb4-4c81-a717-be6b6c718762";
 
   const [binData, setBinData] = useState({
     distance: null,
@@ -269,6 +267,7 @@ const BinDetails = () => {
     }
   };
 
+
   const handleModalClose = () => {
     setIsModalVisible(false);
   };
@@ -303,6 +302,8 @@ const BinDetails = () => {
         <TrashLevelChart binName={binName} />
 
         <MapSection latitude={binData.gps.latitude} longitude={binData.gps.longitude} binName={binName || "Unknown"} />
+
+        {/* <BinAssignee binName={binName} /> */}
       </ScrollView>
 
       <FloatingTrashBubble binName={binName} />
@@ -312,8 +313,6 @@ const BinDetails = () => {
         onClose={handleModalClose}
         notifications={notifications}
       />
-
-      {/* {userRole === "admin" ? <AdminBottomBar /> : <UserBottomBar />} */}
     </View>
   );
 };
