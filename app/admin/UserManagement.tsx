@@ -1,227 +1,223 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
-import { colors } from "../../src/styles/styles";
-import BottomBar from "../components/AdminBottomBar";
-import Spinner from "../components/Spinner";
+"use client"
 
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  contactNumber: string;
-  address: string;
-  isDeleted: boolean;
-}
+import { useState } from "react"
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from "react-native"
+import { colors, shadows } from "../../src/styles/styles"
+import EnhancedAdminBottomBar from "../components/AdminBottomBar"
+import Spinner from "../components/Spinner"
+import UserList from "../components/user-management/UserList"
+import { useBinAssignments } from "../../src/hooks/useBinAssignments"
+import { useUsers } from "../../src/hooks/useUsers"
+import { Search, Plus, RefreshCw, Users } from "lucide-react-native"
+import { LinearGradient } from "expo-linear-gradient"
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { users, isLoadingUsers, refreshUsers } = useUsers()
+  const { bins, isLoadingBins } = useBinAssignments()
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // Fetch all users with role "user" and isDeleted: false
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      try {
-        const querySnapshot = await getDocs(collection(db, "users"));
-        const fetchedUsers: User[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.role === "user" && !data.isDeleted) {
-            fetchedUsers.push({
-              id: doc.id,
-              firstName: data.firstName,
-              lastName: data.lastName,
-              email: data.email,
-              contactNumber: data.contactNumber,
-              address: data.address,
-              isDeleted: data.isDeleted,
-            });
-          }
-        });
-        setUsers(fetchedUsers);
-      } catch (error) {
-        console.error("Error fetching users: ", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const isLoading = isLoadingUsers || isLoadingBins
 
-    fetchUsers();
-  }, []);
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await refreshUsers()
+    setIsRefreshing(false)
+  }
 
-  // Handle soft delete
-  const handleSoftDelete = async (userId: string) => {
-    setIsLoading(true);
-    try {
-      const userDocRef = doc(db, "users", userId);
-      await updateDoc(userDocRef, { isDeleted: true });
-      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId)); // Remove the user from the list
-      setIsModalVisible(false); // Close the modal
-    } catch (error) {
-      console.error("Error soft deleting user: ", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Filter users based on search query
+  const filteredUsers = users.filter(
+    (user) =>
+      user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
   if (isLoading) {
-    return <Spinner />;
+    return <Spinner />
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>User Management</Text>
+    <View style={styles.container}>
+      {/* Header with gradient */}
+      <LinearGradient
+        colors={[colors.primary, colors.secondary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerTitleContainer}>
+            <Users size={24} color={colors.white} style={styles.headerIcon} />
+            <Text style={styles.headerTitle}>User Management</Text>
+          </View>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{users.length}</Text>
+              <Text style={styles.statLabel}>Total Users</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{bins.length}</Text>
+              <Text style={styles.statLabel}>Total Bins</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Search and actions bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Search size={20} color={colors.tertiary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search users..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor={colors.tertiary}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearButton}>
+              <Text style={styles.clearButtonText}>✕</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {users.map((user) => (
-          <View key={user.id} style={styles.userItem}>
-            <Text style={styles.userText}>
-              {user.firstName} {user.lastName}
-            </Text>
-            <TouchableOpacity
-              style={styles.viewButton}
-              onPress={() => {
-                setSelectedUser(user);
-                setIsModalVisible(true);
-              }}
-            >
-              <Text style={styles.viewButtonText}>View</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+        <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh} disabled={isRefreshing}>
+          {isRefreshing ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <RefreshCw size={18} color={colors.white} />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+        <UserList users={filteredUsers} onUserDeleted={refreshUsers} />
       </ScrollView>
 
-      {/* User Details Modal */}
-      <Modal visible={isModalVisible} transparent={true} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {selectedUser && (
-              <>
-                <Text style={styles.modalTitle}>User Details</Text>
-                <Text style={styles.modalText}>First Name: {selectedUser.firstName}</Text>
-                <Text style={styles.modalText}>Last Name: {selectedUser.lastName}</Text>
-                <Text style={styles.modalText}>Email: {selectedUser.email}</Text>
-                <Text style={styles.modalText}>Contact: {selectedUser.contactNumber}</Text>
-                <Text style={styles.modalText}>Address: {selectedUser.address}</Text>
+      {/* Floating Action Button */}
+      {/* <TouchableOpacity style={styles.fab}>
+        <Plus size={24} color={colors.white} />
+      </TouchableOpacity> */}
 
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleSoftDelete(selectedUser.id)}
-                >
-                  <Text style={styles.deleteButtonText}>Soft Delete</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setIsModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <BottomBar />
+      <EnhancedAdminBottomBar />
     </View>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 16,
   },
   header: {
+    paddingTop: 36, // For status bar
+    paddingBottom: 16,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    ...shadows.medium,
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+  },
+  headerTitleContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: colors.primary,
-  },
-  userItem: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 16,
     marginBottom: 16,
-    elevation: 2,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
   },
-  userText: {
-    fontSize: 16,
-    color: colors.primary,
+  headerIcon: {
+    marginRight: 10,
   },
-  viewButton: {
-    backgroundColor: colors.primary,
-    padding: 8,
-    borderRadius: 8,
-  },
-  viewButtonText: {
-    color: colors.white,
-    fontSize: 14,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 16,
-    width: "90%",
-  },
-  modalTitle: {
+  headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: colors.primary,
-    marginBottom: 16,
-  },
-  modalText: {
-    fontSize: 16,
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  deleteButton: {
-    backgroundColor: colors.secondary,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  deleteButtonText: {
     color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
   },
-  closeButton: {
+  statsContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 12,
+    padding: 12,
+    justifyContent: "space-around",
+  },
+  statItem: {
+    alignItems: "center",
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.white,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.white,
+    opacity: 0.8,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.05)",
+    ...shadows.small,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: colors.primary,
+    marginLeft: 8,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  clearButtonText: {
+    color: colors.tertiary,
+    fontSize: 16,
+  },
+  refreshButton: {
     backgroundColor: colors.primary,
-    padding: 12,
+    width: 40,
+    height: 40,
     borderRadius: 8,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
   },
-  closeButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
+  scrollContainer: {
+    flex: 1,
   },
-});
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 105, // Extra space for bottom bar
+  },
+  fab: {
+    position: "absolute",
+    bottom: 90,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    ...shadows.large,
+  },
+})
 
-export default UserManagement;
+export default UserManagement
+

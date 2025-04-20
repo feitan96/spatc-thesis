@@ -1,57 +1,38 @@
-// /app/components/BottomBar.tsx
-import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { colors } from "../../src/styles/styles";
+import { FontAwesome5 } from "@expo/vector-icons"
+import { colors } from "../../src/styles/styles"
+import BaseBottomBar from "./navigation/BaseBottomBar"
 
-const BottomBar = () => {
-  return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.icon}
-        onPress={() => router.push("/admin/UserManagement")}
-      >
-        <FontAwesome name="users" size={24} color={colors.primary} />
-      </TouchableOpacity>
+const AdminBottomBar = () => {
+  const tabs = [
+    {
+      icon: <FontAwesome5 name="users" size={22} color={colors.primary} />,
+      label: "Users",
+      path: "/admin/UserManagement",
+    },
+    {
+      icon: <FontAwesome5 name="trash-alt" size={22} color={colors.primary} />,
+      label: "Bins",
+      path: "/shared/BinList",
+    },
+    {
+      icon: <FontAwesome5 name="home" size={22} color={colors.primary} />,
+      label: "Home",
+      path: "/admin/Dashboard",
+    },
+    {
+      icon: <FontAwesome5 name="chart-bar" size={22} color={colors.primary} />,
+      label: "Analytics",
+      path: "/admin/Analytics",
+    },
+    {
+      icon: <FontAwesome5 name="cog" size={22} color={colors.primary} />,
+      label: "Settings",
+      path: "/shared/Settings",
+    },
+  ]
 
-      <TouchableOpacity
-        style={styles.icon}
-        onPress={() => router.push("/admin/BinManagement")}
-      >
-        <FontAwesome name="trash" size={24} color={colors.primary} />
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={styles.icon}
-        onPress={() => router.push("/admin/Analytics")}
-      >
-        <FontAwesome name="bar-chart" size={24} color={colors.primary} />
-      </TouchableOpacity>
+  return <BaseBottomBar tabs={tabs} />
+}
 
-      <TouchableOpacity
-        style={styles.icon}
-        onPress={() => router.push("/admin/Settings")}
-      >
-        <FontAwesome name="cog" size={24} color={colors.primary} />
-      </TouchableOpacity>
-    </View>
-  );
-};
+export default AdminBottomBar
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: colors.white,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.secondary,
-  },
-  icon: {
-    padding: 8,
-  },
-});
-
-export default BottomBar;
