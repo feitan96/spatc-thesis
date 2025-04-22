@@ -65,21 +65,21 @@ const FloatingTrashBubble: React.FC<FloatingTrashBubbleProps> = ({ binName }) =>
 
   // Calculate volume of trash emptied (cylinder only)
   const calculateVolume = (trashLevelDifference: number) => {
-    const r = 10 // Radius in inches
-    const h = 24 // Height in inches
+    const r = 20 // Radius in centimeters
+    const h = 40 // Height in centimeters
 
-    // Volume of the cylindrical part (π * r^2 * h)
+    // Volume of the cylindrical part (π * r^2 * h) in cubic centimeters
     const V_cylinder = Math.PI * Math.pow(r, 2) * h
 
-    // Convert total volume from cubic inches to liters
-    // (1 cubic inch = 0.016387064 liters)
-    const totalVolumeLiters = V_cylinder * 0.016387064
+    // Convert total volume from cubic centimeters to liters
+    // (1 liter = 1000 cubic centimeters)
+    const totalVolumeLiters = V_cylinder / 1000
 
     // Adjust volume based on trash level percentage
     const volumeLiters = totalVolumeLiters * (trashLevelDifference / 100)
 
     return volumeLiters
-  }
+}
 
   // Post emptying data to Firestore
   const postTrashEmptying = async (volume: number) => {
