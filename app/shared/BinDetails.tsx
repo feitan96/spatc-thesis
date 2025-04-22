@@ -22,10 +22,17 @@ import BinAssignee from '../components/BinAssignee';
 
 interface Notification {
   trashLevel: number;
-  datetime: any; // Changed to any since it's now a ServerTimestamp
+  datetime: any;
   bin: string;
   id: string;
   isRead: boolean;
+  recipients: {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    contactNumber: string;
+    role: string;
+  }[];
   gps: {
     latitude: number;
     longitude: number;
@@ -71,7 +78,7 @@ const BinDetails = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [tideData, setTideData] = useState<TideData | null>(null);
 
-  const { userRole } = useAuth();
+  const { userRole, userId } = useAuth();
 
   // Fetch bin data
   useEffect(() => {
@@ -103,7 +110,7 @@ const BinDetails = () => {
 
   // Fetch notifications with real-time updates
   useEffect(() => {
-    if (!binName) return;
+    if (!binName || !userId) return;
 
     const notificationsRef = collection(db, "newNotifications");
     const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
@@ -117,9 +124,13 @@ const BinDetails = () => {
             bin: data.bin,
             isRead: data.isRead || false,
             gps: data.gps || null,
+            recipients: data.recipients || []
           };
         })
-        .filter((notification) => notification.bin === binName);
+        .filter((notification) => 
+          notification.bin === binName && 
+          notification.recipients.some((recipient: { userId: string; }) => recipient.userId === userId)
+        );
 
       fetchedNotifications.sort((a, b) => {
         const dateA = a.datetime?.toDate?.() || new Date(0);
@@ -249,10 +260,12 @@ const BinDetails = () => {
   };
 
   // Handle modal open/close
-  const handleModalOpen = async () => {
+  const handleModalOpen = () => {
     setIsModalVisible(true);
-    
-    // Mark all notifications as read
+  };
+
+  const handleModalClose = async () => {
+    // Mark all notifications as read when closing
     const unreadNotifications = notifications.filter(n => !n.isRead);
     const updatePromises = unreadNotifications.map(notification =>
       updateDoc(doc(db, "newNotifications", notification.id), { isRead: true })
@@ -260,15 +273,11 @@ const BinDetails = () => {
     
     try {
       await Promise.all(updatePromises);
-      // Only set hasNewNotifications to false after successfully marking notifications as read
       setHasNewNotifications(false);
     } catch (error) {
       console.error("Error marking notifications as read:", error);
     }
-  };
-
-
-  const handleModalClose = () => {
+    
     setIsModalVisible(false);
   };
 
@@ -312,6 +321,7 @@ const BinDetails = () => {
         visible={isModalVisible}
         onClose={handleModalClose}
         notifications={notifications}
+        userId={userId}
       />
     </View>
   );
