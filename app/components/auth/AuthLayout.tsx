@@ -47,7 +47,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle, show
             )}
             <View style={styles.logoContainer}>
               <Image 
-                source={require("../../../assets/images/SeaGBin-logo-v2.png")} 
+                source={require("../../../assets/images/icon.png")} 
                 style={styles.logoImage}
                 resizeMode="contain"
               />

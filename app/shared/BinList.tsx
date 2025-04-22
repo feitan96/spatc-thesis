@@ -120,7 +120,18 @@ const BinList = () => {
 
         {bins.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No bins available</Text>
+            <Text style={styles.emptyStateText}>
+              {userRole === "admin" ? (
+                "No bins available"
+              ) : (
+                <>
+                  No assigned bins yet.{"\n\n"}
+                  Please contact the administrator at:{"\n"}
+                  khentjaydesierto983@gmail.com{"\n"}
+                  for bin assignment.
+                </>
+              )}
+            </Text>
           </View>
         ) : (
           <View style={styles.binGrid}>
@@ -204,11 +215,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 20,
+    width: "100%",
   },
   emptyStateText: {
     fontSize: 16,
     color: colors.secondary,
     textAlign: "center",
+    lineHeight: 24,
   },
 })
 
