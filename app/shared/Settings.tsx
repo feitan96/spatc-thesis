@@ -299,17 +299,18 @@ const SettingsScreen = () => {
                 router.push("/admin/UserManagement"),
               )}
 
-            {renderSettingItem(
+            {userRole === "user" &&
+              renderSettingItem(
               "Help & Support",
               <HelpCircle size={20} color={colors.success} />,
-              () => Alert.alert("Help & Support", "Support features will be available soon."),
+              () => Alert.alert("Help & Support", "Please contact support for assistance at:\nkhentjaydesierto983@gmail.com"),
               `${colors.success}15`,
             )}
 
             {renderSettingItem(
               "About",
               <Info size={20} color={colors.tertiary} />,
-              () => Alert.alert("About", "Trash Collection System v1.0"),
+              () => Alert.alert("About", "SeaGBin v1.0.3"),
               `${colors.tertiary}15`,
             )}
           </View>

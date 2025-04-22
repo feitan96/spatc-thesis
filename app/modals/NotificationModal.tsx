@@ -7,25 +7,40 @@ import { Bell, X, AlertTriangle, Clock, Trash2, MapPin } from "lucide-react-nati
 import { LinearGradient } from "expo-linear-gradient"
 import { useEffect, useRef, useState } from "react"
 import { format } from "date-fns"
+import { doc, updateDoc } from "firebase/firestore"
+import { db } from "@/firebaseConfig"
 
 interface NotificationModalProps {
-  visible: boolean
-  onClose: () => void
+  visible: boolean;
+  onClose: () => void;
   notifications: {
-    trashLevel: number
-    datetime: any
-    bin?: string
-    id?: string
-    isRead?: boolean
+    trashLevel: number;
+    datetime: any;
+    bin?: string;
+    id?: string;
+    isRead?: boolean;
+    recipients: {
+      userId: string;
+      firstName: string;
+      lastName: string;
+      contactNumber: string;
+      role: string;
+    }[];
     gps?: {
-      latitude: number
-      longitude: number
-      altitude: number
-    }
-  }[]
+      latitude: number;
+      longitude: number;
+      altitude: number;
+    };
+  }[];
+  userId: string;
 }
 
-const NotificationModal: React.FC<NotificationModalProps> = ({ visible, onClose, notifications }) => {
+const NotificationModal: React.FC<NotificationModalProps> = ({ 
+  visible, 
+  onClose, 
+  notifications,
+  userId 
+}) => {
   const slideAnim = useRef(new Animated.Value(0)).current
   const [showContent, setShowContent] = useState(false)
 
@@ -49,14 +64,30 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ visible, onClose,
   }, [visible])
 
   const handleClose = () => {
+    // Mark unread notifications as read when closing
+    const unreadNotifications = notifications
+      .filter(n => !n.isRead && n.recipients.some(r => r.userId === userId));
+      
+    if (unreadNotifications.length > 0) {
+      unreadNotifications.forEach(async (notification) => {
+        const notifRef = doc(db, "newNotifications", notification.id!);
+        await updateDoc(notifRef, { isRead: true });
+      });
+    }
+
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      onClose()
-    })
-  }
+      onClose();
+    });
+  };
+
+  // Filter notifications for current user
+  const userNotifications = notifications.filter(notification =>
+    notification.recipients.some(recipient => recipient.userId === userId)
+  );
 
   // Format timestamp function
   const formatTimestamp = (timestamp: any): string => {
@@ -127,7 +158,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ visible, onClose,
           {/* Notification count */}
           <View style={styles.countContainer}>
             <Text style={styles.countText}>
-              {notifications.length} {notifications.length === 1 ? "notification" : "notifications"}
+              {userNotifications.length} {notifications.length === 1 ? "notification" : "notifications"}
             </Text>
           </View>
 
@@ -155,9 +186,14 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ visible, onClose,
                     style={[
                       styles.notificationItem,
                       index === notifications.length - 1 && styles.lastNotificationItem,
-                      notification.isRead === false && styles.unreadNotification,
+                      !notification.isRead && styles.unreadNotification,
                     ]}
                   >
+                    {!notification.isRead && (
+                      <View style={styles.newBadge}>
+                        <Text style={styles.newBadgeText}>NEW</Text>
+                      </View>
+                    )}
                     <View style={[styles.iconContainer, { backgroundColor: `${statusColor}15` }]}>
                       {isCritical ? (
                         <AlertTriangle size={22} color={statusColor} />
@@ -280,10 +316,6 @@ const styles = StyleSheet.create({
   lastNotificationItem: {
     marginBottom: 16,
   },
-  unreadNotification: {
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-  },
   iconContainer: {
     width: 44,
     height: 44,
@@ -375,6 +407,25 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: "600",
+  }, 
+  newBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  newBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  unreadNotification: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
 })
 
