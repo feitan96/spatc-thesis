@@ -25,13 +25,13 @@ interface Notification {
   datetime: any;
   bin: string;
   id: string;
-  isRead: boolean;
   recipients: {
     userId: string;
     firstName: string;
     lastName: string;
     contactNumber: string;
     role: string;
+    isRead: boolean;
   }[];
   gps: {
     latitude: number;
@@ -111,7 +111,7 @@ const BinDetails = () => {
   // Fetch notifications with real-time updates
   useEffect(() => {
     if (!binName || !userId) return;
-
+  
     const notificationsRef = collection(db, "newNotifications");
     const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
       const fetchedNotifications = snapshot.docs
@@ -122,32 +122,33 @@ const BinDetails = () => {
             trashLevel: data.trashLevel,
             datetime: data.datetime,
             bin: data.bin,
-            isRead: data.isRead || false,
             gps: data.gps || null,
             recipients: data.recipients || []
           };
         })
         .filter((notification) => 
           notification.bin === binName && 
-          notification.recipients.some((recipient: { userId: string; }) => recipient.userId === userId)
+          notification.recipients.some((recipient) => recipient.userId === userId)
         );
-
+  
       fetchedNotifications.sort((a, b) => {
         const dateA = a.datetime?.toDate?.() || new Date(0);
         const dateB = b.datetime?.toDate?.() || new Date(0);
         return dateB.getTime() - dateA.getTime();
       });
       setNotifications(fetchedNotifications);
-
-      // Check for notifications that don't have isRead: true
-      const hasUnread = fetchedNotifications.some(
-        (notification) => notification.isRead !== true
+  
+      // Check for unread notifications for this user
+      const hasUnread = fetchedNotifications.some(notification => 
+        notification.recipients.some(recipient => 
+          recipient.userId === userId && !recipient.isRead
+        )
       );
       setHasNewNotifications(hasUnread);
     });
-
+  
     return () => unsubscribe();
-  }, [binName]);
+  }, [binName, userId]);
 
   // Fetch weather data
   useEffect(() => {
@@ -265,11 +266,26 @@ const BinDetails = () => {
   };
 
   const handleModalClose = async () => {
-    // Mark all notifications as read when closing
-    const unreadNotifications = notifications.filter(n => !n.isRead);
-    const updatePromises = unreadNotifications.map(notification =>
-      updateDoc(doc(db, "newNotifications", notification.id), { isRead: true })
-    );
+    // Mark all notifications as read for this user when closing
+    const notificationsToUpdate = notifications
+      .filter(notification => 
+        notification.recipients.some(recipient => 
+          recipient.userId === userId && !recipient.isRead
+        )
+      )
+      .map(notification => ({
+        id: notification.id,
+        recipients: notification.recipients.map(recipient => 
+          recipient.userId === userId 
+            ? { ...recipient, isRead: true } 
+            : recipient
+        )
+      }));
+  
+    const updatePromises = notificationsToUpdate.map(notification => {
+      const notifRef = doc(db, "newNotifications", notification.id);
+      return updateDoc(notifRef, { recipients: notification.recipients });
+    });
     
     try {
       await Promise.all(updatePromises);

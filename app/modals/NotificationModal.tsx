@@ -18,13 +18,13 @@ interface NotificationModalProps {
     datetime: any;
     bin?: string;
     id?: string;
-    isRead?: boolean;
     recipients: {
       userId: string;
       firstName: string;
       lastName: string;
       contactNumber: string;
       role: string;
+      isRead: boolean;
     }[];
     gps?: {
       latitude: number;
@@ -43,6 +43,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 }) => {
   const slideAnim = useRef(new Animated.Value(0)).current
   const [showContent, setShowContent] = useState(false)
+  const [displayLimit, setDisplayLimit] = useState(5)
 
   useEffect(() => {
     if (visible) {
@@ -64,17 +65,29 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
   }, [visible])
 
   const handleClose = () => {
-    // Mark unread notifications as read when closing
-    const unreadNotifications = notifications
-      .filter(n => !n.isRead && n.recipients.some(r => r.userId === userId));
-      
-    if (unreadNotifications.length > 0) {
-      unreadNotifications.forEach(async (notification) => {
-        const notifRef = doc(db, "newNotifications", notification.id!);
-        await updateDoc(notifRef, { isRead: true });
+    // Mark unread notifications as read for this user when closing
+    const notificationsToUpdate = notifications
+      .filter(notification => 
+        notification.recipients.some(recipient => 
+          recipient.userId === userId && !recipient.isRead
+        )
+      )
+      .map(notification => ({
+        id: notification.id!,
+        recipients: notification.recipients.map(recipient => 
+          recipient.userId === userId 
+            ? { ...recipient, isRead: true } 
+            : recipient
+        )
+      }));
+  
+    if (notificationsToUpdate.length > 0) {
+      notificationsToUpdate.forEach(async (notification) => {
+        const notifRef = doc(db, "newNotifications", notification.id);
+        await updateDoc(notifRef, { recipients: notification.recipients });
       });
     }
-
+  
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 300,
@@ -88,6 +101,13 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
   const userNotifications = notifications.filter(notification =>
     notification.recipients.some(recipient => recipient.userId === userId)
   );
+
+  const displayedNotifications = userNotifications.slice(0, displayLimit);
+  const hasMoreNotifications = userNotifications.length > displayLimit;
+
+  const handleShowMore = () => {
+    setDisplayLimit(prevLimit => prevLimit + 10);
+  };
 
   // Format timestamp function
   const formatTimestamp = (timestamp: any): string => {
@@ -168,28 +188,31 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {notifications.length === 0 ? (
+            {userNotifications.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Bell size={48} color={colors.tertiary} style={styles.emptyIcon} />
                 <Text style={styles.emptyTitle}>No Notifications</Text>
                 <Text style={styles.emptyText}>You don't have any notifications at the moment.</Text>
               </View>
             ) : (
-              notifications.map((notification, index) => {
-                const statusColor = trashLevels.getColor(notification.trashLevel)
-                const isCritical = notification.trashLevel >= 90
-                const formattedTime = formatTimestamp(notification.datetime)
+              <>
+                {displayedNotifications.map((notification, index) => {
+                  const userRecipient = notification.recipients.find(r => r.userId === userId);
+                  const isRead = userRecipient?.isRead ?? false;
+                  const statusColor = trashLevels.getColor(notification.trashLevel)
+                  const isCritical = notification.trashLevel >= 90
+                  const formattedTime = formatTimestamp(notification.datetime)
 
                 return (
-                  <View
+                    <View
                     key={notification.id || index}
                     style={[
                       styles.notificationItem,
-                      index === notifications.length - 1 && styles.lastNotificationItem,
-                      !notification.isRead && styles.unreadNotification,
+                      index === userNotifications.length - 1 && styles.lastNotificationItem,
+                      !isRead && styles.unreadNotification,
                     ]}
-                  >
-                    {!notification.isRead && (
+                    >
+                    {!isRead && (
                       <View style={styles.newBadge}>
                         <Text style={styles.newBadgeText}>NEW</Text>
                       </View>
@@ -226,7 +249,19 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                     </View>
                   </View>
                 )
-              })
+              })}
+                {hasMoreNotifications && (
+                  <TouchableOpacity 
+                    style={styles.showMoreButton}
+                    onPress={handleShowMore}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.showMoreText}>
+                      Show More Notifications
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </ScrollView>
 
@@ -426,6 +461,19 @@ const styles = StyleSheet.create({
   unreadNotification: {
     borderLeftWidth: 4,
     borderLeftColor: colors.primary,
+  },
+  showMoreButton: {
+    backgroundColor: `${colors.primary}10`,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  showMoreText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 })
 
