@@ -22,7 +22,7 @@ const FloatingTrashBubble: React.FC<FloatingTrashBubbleProps> = ({ binName }) =>
   const [newTrashLevel, setNewTrashLevel] = useState<number | null>(null)
   const [volumeEmptied, setVolumeEmptied] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const { firstName, lastName, userId } = useAuth()
+  const { firstName, lastName, userId, userRole } = useAuth()
 
   // Animation value for pulse effect
   const pulseAnim = useState(new Animated.Value(1))[0]
@@ -161,6 +161,12 @@ const FloatingTrashBubble: React.FC<FloatingTrashBubbleProps> = ({ binName }) =>
     return null
   }
 
+  const handleBubblePress = () => {
+    if (userRole === 'user') {
+      setIsModalVisible(true);
+    }
+  };
+
   // Get status color using the trashLevels helper
   const statusColor = trashLevels.getColor(trashLevel)
   const statusText = trashLevels.getStatusText(trashLevel)
@@ -170,9 +176,13 @@ const FloatingTrashBubble: React.FC<FloatingTrashBubbleProps> = ({ binName }) =>
       {/* Floating Bubble */}
       <Animated.View style={[styles.bubbleContainer, { transform: [{ scale: pulseAnim }] }]}>
         <TouchableOpacity
-          style={[styles.bubble, { backgroundColor: statusColor }]}
-          onPress={() => setIsModalVisible(true)}
-          activeOpacity={0.8}
+          style={[
+            styles.bubble, 
+            { backgroundColor: statusColor },
+            userRole !== 'user' && styles.disabledBubble
+          ]}
+          onPress={handleBubblePress}
+          activeOpacity={userRole === 'user' ? 0.8 : 1}
         >
           <Trash2 size={22} color={colors.white} />
           <Text style={styles.bubbleText}>{trashLevel}%</Text>
@@ -459,6 +469,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     height: 50,
     ...shadows.small,
+  },
+  disabledBubble: {
+    opacity: 0.7,
   },
 })
 
