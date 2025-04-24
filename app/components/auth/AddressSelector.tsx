@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, ActivityIndicator } from "react-nati
 import { colors } from "../../../src/styles/styles";
 import { MapPin } from "lucide-react-native";
 import DropDownPicker from "react-native-dropdown-picker";
+import FormInput from "./FormInput";
 
 interface AddressSelectorProps {
   onAddressChange: (address: string) => void;
@@ -189,7 +190,7 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({ onAddressChange, erro
 
   return (
     <View style={styles.container}>
-      {/* Region Dropdown */}
+      <Text style={styles.label}>Region</Text>
       <DropDownPicker
         open={regionOpen}
         value={regionValue}
@@ -209,7 +210,7 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({ onAddressChange, erro
         }}
         style={styles.dropdown}
         dropDownContainerStyle={styles.dropdownContainer}
-        listMode="MODAL" // Changed to MODAL to avoid VirtualizedList nesting
+        listMode="MODAL"
         modalProps={{
           animationType: "slide",
         }}
@@ -221,112 +222,117 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({ onAddressChange, erro
 
       {/* Province Dropdown */}
       {regionValue && (
-        <DropDownPicker
-          open={provinceOpen}
-          value={provinceValue}
-          items={provinces}
-          setOpen={setProvinceOpen}
-          setValue={setProvinceValue}
-          setItems={setProvinces}
-          placeholder="Select Province"
-          loading={provinceLoading}
-          activityIndicatorColor={colors.primary}
-          searchable={true}
-          searchPlaceholder="Search province..."
-          searchTextInputProps={{
-            maxLength: 25,
-            autoCorrect: false,
-            autoCapitalize: "none",
-          }}
-          style={styles.dropdown}
-          dropDownContainerStyle={styles.dropdownContainer}
-          listMode="MODAL"
-          modalProps={{
-            animationType: "slide",
-          }}
-          modalTitle="Select a Province"
-          modalContentContainerStyle={styles.modalContent}
-          zIndex={Z_INDEX_PROVINCE}
-          zIndexInverse={Z_INDEX_CITY}
-        />
+        <>
+          <Text style={styles.label}>Province</Text>
+          <DropDownPicker
+            open={provinceOpen}
+            value={provinceValue}
+            items={provinces}
+            setOpen={setProvinceOpen}
+            setValue={setProvinceValue}
+            setItems={setProvinces}
+            placeholder="Select Province"
+            loading={provinceLoading}
+            activityIndicatorColor={colors.primary}
+            searchable={true}
+            searchPlaceholder="Search province..."
+            searchTextInputProps={{
+              maxLength: 25,
+              autoCorrect: false,
+              autoCapitalize: "none",
+            }}
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            listMode="MODAL"
+            modalProps={{
+              animationType: "slide",
+            }}
+            modalTitle="Select a Province"
+            modalContentContainerStyle={styles.modalContent}
+            zIndex={Z_INDEX_PROVINCE}
+            zIndexInverse={Z_INDEX_CITY}
+          />
+        </>
       )}
 
       {/* City Dropdown */}
       {provinceValue && (
-        <DropDownPicker
-          open={cityOpen}
-          value={cityValue}
-          items={cities}
-          setOpen={setCityOpen}
-          setValue={setCityValue}
-          setItems={setCities}
-          placeholder="Select City/Municipality"
-          loading={cityLoading}
-          activityIndicatorColor={colors.primary}
-          searchable={true}
-          searchPlaceholder="Search city..."
-          searchTextInputProps={{
-            maxLength: 25,
-            autoCorrect: false,
-            autoCapitalize: "none",
-          }}
-          style={styles.dropdown}
-          dropDownContainerStyle={styles.dropdownContainer}
-          listMode="MODAL"
-          modalProps={{
-            animationType: "slide",
-          }}
-          modalTitle="Select a City/Municipality"
-          modalContentContainerStyle={styles.modalContent}
-          zIndex={Z_INDEX_CITY}
-          zIndexInverse={Z_INDEX_PROVINCE}
-        />
+        <>
+          <Text style={styles.label}>City/Municipality</Text>
+          <DropDownPicker
+            open={cityOpen}
+            value={cityValue}
+            items={cities}
+            setOpen={setCityOpen}
+            setValue={setCityValue}
+            setItems={setCities}
+            placeholder="Select City/Municipality"
+            loading={cityLoading}
+            activityIndicatorColor={colors.primary}
+            searchable={true}
+            searchPlaceholder="Search city..."
+            searchTextInputProps={{
+              maxLength: 25,
+              autoCorrect: false,
+              autoCapitalize: "none",
+            }}
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            listMode="MODAL"
+            modalProps={{
+              animationType: "slide",
+            }}
+            modalTitle="Select a City/Municipality"
+            modalContentContainerStyle={styles.modalContent}
+            zIndex={Z_INDEX_CITY}
+            zIndexInverse={Z_INDEX_PROVINCE}
+          />
+        </>
       )}
 
       {/* Barangay Dropdown */}
       {cityValue && (
-        <DropDownPicker
-          open={barangayOpen}
-          value={barangayValue}
-          items={barangays}
-          setOpen={setBarangayOpen}
-          setValue={setBarangayValue}
-          setItems={setBarangays}
-          placeholder="Select Barangay"
-          loading={barangayLoading}
-          activityIndicatorColor={colors.primary}
-          searchable={true}
-          searchPlaceholder="Search barangay..."
-          searchTextInputProps={{
-            maxLength: 25,
-            autoCorrect: false,
-            autoCapitalize: "none",
-          }}
-          style={styles.dropdown}
-          dropDownContainerStyle={styles.dropdownContainer}
-          listMode="MODAL"
-          modalProps={{
-            animationType: "slide",
-          }}
-          modalTitle="Select a Barangay"
-          modalContentContainerStyle={styles.modalContent}
-          zIndex={Z_INDEX_BARANGAY}
-          zIndexInverse={Z_INDEX_REGION}
-        />
+        <>
+          <Text style={styles.label}>Barangay</Text>
+          <DropDownPicker
+            open={barangayOpen}
+            value={barangayValue}
+            items={barangays}
+            setOpen={setBarangayOpen}
+            setValue={setBarangayValue}
+            setItems={setBarangays}
+            placeholder="Select Barangay"
+            loading={barangayLoading}
+            activityIndicatorColor={colors.primary}
+            searchable={true}
+            searchPlaceholder="Search barangay..."
+            searchTextInputProps={{
+              maxLength: 25,
+              autoCorrect: false,
+              autoCapitalize: "none",
+            }}
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            listMode="MODAL"
+            modalProps={{
+              animationType: "slide",
+            }}
+            modalTitle="Select a Barangay"
+            modalContentContainerStyle={styles.modalContent}
+            zIndex={Z_INDEX_BARANGAY}
+            zIndexInverse={Z_INDEX_REGION}
+          />
+        </>
       )}
 
       {/* Street Address Input */}
-      <View style={styles.inputContainer}>
-        <View style={styles.iconContainer}>
-          <MapPin size={20} color={colors.secondary} />
-        </View>
-        <TextInput
-          style={styles.streetInput}
-          placeholder="Enter street address"
-          value={streetAddress}
-          onChangeText={setStreetAddress}
-        />
-      </View>
+      <FormInput
+        label="Street Address"
+        value={streetAddress}
+        onChangeText={setStreetAddress}
+        placeholder="Enter street address"
+        icon={<MapPin size={20} color={colors.secondary} />}
+      />
 
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
@@ -336,7 +342,7 @@ const AddressSelector: React.FC<AddressSelectorProps> = ({ onAddressChange, erro
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    gap: 12,
+    gap: 8,
     marginBottom: 16,
   },
   inputContainer: {
@@ -377,6 +383,12 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontSize: 12,
     marginTop: 4,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.primary,
+    marginBottom: 4,
   },
 });
 
