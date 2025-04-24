@@ -112,7 +112,7 @@ const BinDetails = () => {
   useEffect(() => {
     if (!binName || !userId) return;
   
-    const notificationsRef = collection(db, "newNotifications");
+    const notificationsRef = collection(db, "notifications");
     const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
       const fetchedNotifications = snapshot.docs
         .map((doc) => {
@@ -224,38 +224,7 @@ const BinDetails = () => {
       }
     }
 
-    // Fetch notifications
-    try {
-      const querySnapshot = await getDocs(collection(db, "newNotifications"));
-      const fetchedNotifications = querySnapshot.docs
-        .map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            trashLevel: data.trashLevel,
-            datetime: data.datetime,
-            bin: data.bin,
-            isRead: data.isRead || false,
-            gps: data.gps || null,
-          };
-        })
-        .filter((notification) => notification.bin === binName);
-
-      fetchedNotifications.sort((a, b) => {
-        const dateA = a.datetime?.toDate?.() || new Date(0);
-        const dateB = b.datetime?.toDate?.() || new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      });
-      setNotifications(fetchedNotifications);
-
-      // Check for notifications that don't have isRead: true
-      const hasUnread = fetchedNotifications.some(
-        (notification) => notification.isRead !== true
-      );
-      setHasNewNotifications(hasUnread);
-    } catch (error) {
-      console.error("Error fetching notifications: ", error);
-    }
+    
 
     setRefreshing(false);
   };
@@ -283,7 +252,7 @@ const BinDetails = () => {
       }));
   
     const updatePromises = notificationsToUpdate.map(notification => {
-      const notifRef = doc(db, "newNotifications", notification.id);
+      const notifRef = doc(db, "notifications", notification.id);
       return updateDoc(notifRef, { recipients: notification.recipients });
     });
     
